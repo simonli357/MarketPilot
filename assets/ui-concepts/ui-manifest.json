@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "profile": "desktop",
+  "enabled": true,
+  "directionState": "unresolved",
+  "selectedOption": null,
+  "selectionEvidence": null,
+  "inventoryComplete": false,
+  "options": {
+    "a": {
+      "theme": null,
+      "designSystem": null,
+      "mockups": []
+    },
+    "b": {
+      "theme": null,
+      "designSystem": null,
+      "mockups": []
+    }
+  },
+  "exactDesignSystem": {
+    "document": null,
+    "tokens": null,
+    "componentGallery": {
+      "path": null,
+      "command": null
+    }
+  },
+  "viewports": [],
+  "surfaces": [],
+  "assets": [],
+  "fidelity": {
+    "method": null,
+    "tolerance": null,
+    "exceptions": []
+  }
+}

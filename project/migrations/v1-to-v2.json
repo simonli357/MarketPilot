@@ -1,0 +1,76 @@
+{
+  "from": "1.x",
+  "to": "2.0.0",
+  "strategy": "archive-first",
+  "defaultMode": "dry-run",
+  "legacyPaths": [
+    {
+      "path": "docs/brainstorming/00-freeform-idea.md",
+      "owner": "docs/idea.md"
+    },
+    {
+      "path": "docs/planning/00-end-goal.md",
+      "owner": "docs/product.md"
+    },
+    {
+      "path": "docs/planning/00-roadmap.md",
+      "owner": "docs/product.md"
+    },
+    {
+      "path": "docs/planning/01-prd.md",
+      "owner": "docs/product.md"
+    },
+    {
+      "path": "docs/planning/01-project-plan.md",
+      "owner": "docs/product.md"
+    },
+    {
+      "path": "docs/planning/02-requirements.md",
+      "owner": "docs/product.md and docs/blocks/"
+    },
+    {
+      "path": "docs/planning/03-ux-spec.md",
+      "owner": "docs/ui.md and docs/blocks/"
+    },
+    {
+      "path": "docs/planning/03-interface-spec.md",
+      "owner": "docs/product.md and docs/architecture.md"
+    },
+    {
+      "path": "docs/planning/04-technical-plan.md",
+      "owner": "docs/architecture.md"
+    },
+    {
+      "path": "docs/planning/04a-implementation-blueprint.md",
+      "owner": "docs/blocks/"
+    },
+    {
+      "path": "docs/planning/04b-test-plan.md",
+      "owner": "docs/quality.md and docs/blocks/"
+    },
+    {
+      "path": "docs/planning/04b-validation-plan.md",
+      "owner": "docs/quality.md and docs/blocks/"
+    },
+    {
+      "path": "docs/planning/05-blocks",
+      "owner": "docs/blocks/"
+    },
+    {
+      "path": "docs/planning/07-decisions.md",
+      "owner": "docs/decisions/"
+    },
+    {
+      "path": "docs/tracking",
+      "owner": "docs/work-items/ and project/release.json"
+    },
+    {
+      "path": "docs/delivery",
+      "owner": "docs/guides/ and docs/commands.md"
+    },
+    {
+      "path": "docs/engineering-style.md",
+      "owner": "docs/engineering.md"
+    }
+  ]
+}

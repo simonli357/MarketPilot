@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "release": "V1",
+  "phase": "intake",
+  "decision": "no-go",
+  "requiredMaturity": "L3",
+  "requiredBlocks": [],
+  "planningApprovals": [
+    {
+      "id": "product-shape",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "major-architecture",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "first-goal",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "gates": [
+    {
+      "id": "requirements",
+      "name": "Active-release requirements are mapped and accepted",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "required-blocks",
+      "name": "Required capability blocks meet release maturity",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "quality",
+      "name": "Activated quality criteria and regressions pass",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "clean-setup",
+      "name": "Clean supported setup and primary flow are proven",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "release-artifact",
+      "name": "Shipping artifact or deployment is validated",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "documentation",
+      "name": "Required user, operator, developer, and release guidance is accurate",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "ui-fidelity",
+      "name": "Runtime UI matches the approved coded design system and references",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "network-reliability",
+      "name": "Network failure, retry, timeout, compatibility, and observability are proven",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "data-migrations",
+      "name": "Persistence migration, recovery, backup, and rollback are proven",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "native-packaging",
+      "name": "Native install, update, signing, cleanup, and supported hosts are proven",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "hardware-safety",
+      "name": "Hardware behavior, simulation or HIL, limits, and safe failure are proven",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "security-privacy",
+      "name": "Trust boundaries, authorization, privacy, secrets, retention, and abuse cases are proven",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "money-integrity",
+      "name": "Value invariants, authorization, idempotency, reconciliation, and auditability are proven",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "realtime-performance",
+      "name": "Named realtime workload, resource budgets, soak, and regression thresholds pass",
+      "required": false,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    }
+  ],
+  "evidencePolicy": {
+    "maxTrackedBytes": 5242880,
+    "largeBinaryPolicy": "git-lfs-or-approved-external-storage"
+  },
+  "lastValidation": {
+    "summary": null,
+    "at": null
+  }
+}

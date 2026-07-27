@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Planning"
+  short_description: "Plan the next evidence-backed delivery slice"
+  default_prompt: "Use $project-planning to turn the project idea into an approved first execution goal."
+policy:
+  allow_implicit_invocation: true

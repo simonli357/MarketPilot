@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "release": "V1",
+  "createdAt": "YYYY-MM-DDTHH:mm:ssZ",
+  "artifacts": [
+    {
+      "id": "evidence-id",
+      "gate": "quality",
+      "path": "artifacts/releases/V1/example.txt",
+      "external": null,
+      "method": "command or manual procedure that produced the evidence",
+      "environment": "OS, runtime, target, fixture, and relevant configuration",
+      "capturedAt": "YYYY-MM-DDTHH:mm:ssZ",
+      "sha256": "replace-with-64-character-content-hash"
+    }
+  ]
+}

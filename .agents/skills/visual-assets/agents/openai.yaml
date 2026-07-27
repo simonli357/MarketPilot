@@ -1,0 +1,6 @@
+interface:
+  display_name: "Visual Assets"
+  short_description: "Generate and validate shipping raster assets"
+  default_prompt: "Use $visual-assets to generate each required raster asset as a standalone production file."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,518 @@
+{
+  "schemaVersion": 1,
+  "templateVersion": "2.0.0",
+  "files": [
+    {
+      "path": ".agents/skills/docs-sync/agents/openai.yaml",
+      "sha256": "2075e3dad03086f409eb45dfeb11189bd757bce3c8e553b7da860e56a97764d2"
+    },
+    {
+      "path": ".agents/skills/docs-sync/SKILL.md",
+      "sha256": "681860ad3d2afa66eaf5a6611acbf2276e8c8b152de04ce944abcc3cb2a182f9"
+    },
+    {
+      "path": ".agents/skills/production-hardening/agents/openai.yaml",
+      "sha256": "862c1c33f44fddb725ba51267a80682fec5f72a74ef20d7856d3462d736d61a9"
+    },
+    {
+      "path": ".agents/skills/production-hardening/references/risk-gates.md",
+      "sha256": "72c1d24cdffa43dfa09dfb78667b0ff7e0e03e1cae84253e27cdae34eef29ceb"
+    },
+    {
+      "path": ".agents/skills/production-hardening/SKILL.md",
+      "sha256": "95250867132aeb026f82de9e354da9dd0021291539d4b08f648cc067c3387d42"
+    },
+    {
+      "path": ".agents/skills/project-planning/agents/openai.yaml",
+      "sha256": "b4fa584f72854d6c26ca3bc0425963b1897443d74f5edb1d3a057d81dadf634e"
+    },
+    {
+      "path": ".agents/skills/project-planning/references/goal-contract.md",
+      "sha256": "9c9494d09958f857f79cf0a7b001e7418ad354c219193dffbcba8b05f50c2c2f"
+    },
+    {
+      "path": ".agents/skills/project-planning/SKILL.md",
+      "sha256": "8df8e587183389ca2b7ea5c66d64dec9b90c38746555d0105f2ca79afcbbf4c4"
+    },
+    {
+      "path": ".agents/skills/release-readiness/agents/openai.yaml",
+      "sha256": "c7cfce9b35f32ff334c885981e5ead782f4e912546acd357519e7ca4adb21af5"
+    },
+    {
+      "path": ".agents/skills/release-readiness/references/release-gates.md",
+      "sha256": "856709705ba4e536232682e9f593d69e553200e3a93f20521a773c371f659c7f"
+    },
+    {
+      "path": ".agents/skills/release-readiness/SKILL.md",
+      "sha256": "1e9a3d9cf91cdcccf2a3f31dfc9f2d2d3c291200c07e9517269de29d4ce2026b"
+    },
+    {
+      "path": ".agents/skills/ui-design/agents/openai.yaml",
+      "sha256": "29bd00997247775798d5b443d6ccc9a4fcd938057f60401e9e982ca1de28a2b2"
+    },
+    {
+      "path": ".agents/skills/ui-design/references/design-system-gate.md",
+      "sha256": "f333fd091576141f49a0cae85cfb4320e133595ddb2e368fd1db526826fed84c"
+    },
+    {
+      "path": ".agents/skills/ui-design/SKILL.md",
+      "sha256": "483100d267b631b8bd76766295e8d2e9ffe7f5af5976630b2be358919420d8a3"
+    },
+    {
+      "path": ".agents/skills/ui-fidelity/agents/openai.yaml",
+      "sha256": "08eff61b4f94043ccce90e66f0c523b41c70ad7e3a34a1d2406d6dd20d390072"
+    },
+    {
+      "path": ".agents/skills/ui-fidelity/SKILL.md",
+      "sha256": "77749326a92611edc3e02aff6134c08cff587808c469e82ca69bc09ca9661cbf"
+    },
+    {
+      "path": ".agents/skills/visual-assets/agents/openai.yaml",
+      "sha256": "c3022cc533a7cd7d831a827724e54d0d0300fa2a19acb684e2cc1e61bf685f6c"
+    },
+    {
+      "path": ".agents/skills/visual-assets/references/asset-acceptance.md",
+      "sha256": "73ae9a4a138c230440cf9d1ba7fe20ada0e8f268eac5c9d360fe09f4ded04922"
+    },
+    {
+      "path": ".agents/skills/visual-assets/SKILL.md",
+      "sha256": "765364f7bf30d2a39db4445e00eee0eac56b0bfc60854fc7ccba8239814dc26e"
+    },
+    {
+      "path": ".claude/skills/docs-sync/agents/openai.yaml",
+      "sha256": "2075e3dad03086f409eb45dfeb11189bd757bce3c8e553b7da860e56a97764d2"
+    },
+    {
+      "path": ".claude/skills/docs-sync/SKILL.md",
+      "sha256": "681860ad3d2afa66eaf5a6611acbf2276e8c8b152de04ce944abcc3cb2a182f9"
+    },
+    {
+      "path": ".claude/skills/production-hardening/agents/openai.yaml",
+      "sha256": "862c1c33f44fddb725ba51267a80682fec5f72a74ef20d7856d3462d736d61a9"
+    },
+    {
+      "path": ".claude/skills/production-hardening/references/risk-gates.md",
+      "sha256": "72c1d24cdffa43dfa09dfb78667b0ff7e0e03e1cae84253e27cdae34eef29ceb"
+    },
+    {
+      "path": ".claude/skills/production-hardening/SKILL.md",
+      "sha256": "95250867132aeb026f82de9e354da9dd0021291539d4b08f648cc067c3387d42"
+    },
+    {
+      "path": ".claude/skills/project-planning/agents/openai.yaml",
+      "sha256": "b4fa584f72854d6c26ca3bc0425963b1897443d74f5edb1d3a057d81dadf634e"
+    },
+    {
+      "path": ".claude/skills/project-planning/references/goal-contract.md",
+      "sha256": "9c9494d09958f857f79cf0a7b001e7418ad354c219193dffbcba8b05f50c2c2f"
+    },
+    {
+      "path": ".claude/skills/project-planning/SKILL.md",
+      "sha256": "8df8e587183389ca2b7ea5c66d64dec9b90c38746555d0105f2ca79afcbbf4c4"
+    },
+    {
+      "path": ".claude/skills/release-readiness/agents/openai.yaml",
+      "sha256": "c7cfce9b35f32ff334c885981e5ead782f4e912546acd357519e7ca4adb21af5"
+    },
+    {
+      "path": ".claude/skills/release-readiness/references/release-gates.md",
+      "sha256": "856709705ba4e536232682e9f593d69e553200e3a93f20521a773c371f659c7f"
+    },
+    {
+      "path": ".claude/skills/release-readiness/SKILL.md",
+      "sha256": "1e9a3d9cf91cdcccf2a3f31dfc9f2d2d3c291200c07e9517269de29d4ce2026b"
+    },
+    {
+      "path": ".claude/skills/ui-design/agents/openai.yaml",
+      "sha256": "29bd00997247775798d5b443d6ccc9a4fcd938057f60401e9e982ca1de28a2b2"
+    },
+    {
+      "path": ".claude/skills/ui-design/references/design-system-gate.md",
+      "sha256": "f333fd091576141f49a0cae85cfb4320e133595ddb2e368fd1db526826fed84c"
+    },
+    {
+      "path": ".claude/skills/ui-design/SKILL.md",
+      "sha256": "483100d267b631b8bd76766295e8d2e9ffe7f5af5976630b2be358919420d8a3"
+    },
+    {
+      "path": ".claude/skills/ui-fidelity/agents/openai.yaml",
+      "sha256": "08eff61b4f94043ccce90e66f0c523b41c70ad7e3a34a1d2406d6dd20d390072"
+    },
+    {
+      "path": ".claude/skills/ui-fidelity/SKILL.md",
+      "sha256": "77749326a92611edc3e02aff6134c08cff587808c469e82ca69bc09ca9661cbf"
+    },
+    {
+      "path": ".claude/skills/visual-assets/agents/openai.yaml",
+      "sha256": "c3022cc533a7cd7d831a827724e54d0d0300fa2a19acb684e2cc1e61bf685f6c"
+    },
+    {
+      "path": ".claude/skills/visual-assets/references/asset-acceptance.md",
+      "sha256": "73ae9a4a138c230440cf9d1ba7fe20ada0e8f268eac5c9d360fe09f4ded04922"
+    },
+    {
+      "path": ".claude/skills/visual-assets/SKILL.md",
+      "sha256": "765364f7bf30d2a39db4445e00eee0eac56b0bfc60854fc7ccba8239814dc26e"
+    },
+    {
+      "path": ".codex/skills/docs-sync/agents/openai.yaml",
+      "sha256": "2075e3dad03086f409eb45dfeb11189bd757bce3c8e553b7da860e56a97764d2"
+    },
+    {
+      "path": ".codex/skills/docs-sync/SKILL.md",
+      "sha256": "681860ad3d2afa66eaf5a6611acbf2276e8c8b152de04ce944abcc3cb2a182f9"
+    },
+    {
+      "path": ".codex/skills/production-hardening/agents/openai.yaml",
+      "sha256": "862c1c33f44fddb725ba51267a80682fec5f72a74ef20d7856d3462d736d61a9"
+    },
+    {
+      "path": ".codex/skills/production-hardening/references/risk-gates.md",
+      "sha256": "72c1d24cdffa43dfa09dfb78667b0ff7e0e03e1cae84253e27cdae34eef29ceb"
+    },
+    {
+      "path": ".codex/skills/production-hardening/SKILL.md",
+      "sha256": "95250867132aeb026f82de9e354da9dd0021291539d4b08f648cc067c3387d42"
+    },
+    {
+      "path": ".codex/skills/project-planning/agents/openai.yaml",
+      "sha256": "b4fa584f72854d6c26ca3bc0425963b1897443d74f5edb1d3a057d81dadf634e"
+    },
+    {
+      "path": ".codex/skills/project-planning/references/goal-contract.md",
+      "sha256": "9c9494d09958f857f79cf0a7b001e7418ad354c219193dffbcba8b05f50c2c2f"
+    },
+    {
+      "path": ".codex/skills/project-planning/SKILL.md",
+      "sha256": "8df8e587183389ca2b7ea5c66d64dec9b90c38746555d0105f2ca79afcbbf4c4"
+    },
+    {
+      "path": ".codex/skills/release-readiness/agents/openai.yaml",
+      "sha256": "c7cfce9b35f32ff334c885981e5ead782f4e912546acd357519e7ca4adb21af5"
+    },
+    {
+      "path": ".codex/skills/release-readiness/references/release-gates.md",
+      "sha256": "856709705ba4e536232682e9f593d69e553200e3a93f20521a773c371f659c7f"
+    },
+    {
+      "path": ".codex/skills/release-readiness/SKILL.md",
+      "sha256": "1e9a3d9cf91cdcccf2a3f31dfc9f2d2d3c291200c07e9517269de29d4ce2026b"
+    },
+    {
+      "path": ".codex/skills/ui-design/agents/openai.yaml",
+      "sha256": "29bd00997247775798d5b443d6ccc9a4fcd938057f60401e9e982ca1de28a2b2"
+    },
+    {
+      "path": ".codex/skills/ui-design/references/design-system-gate.md",
+      "sha256": "f333fd091576141f49a0cae85cfb4320e133595ddb2e368fd1db526826fed84c"
+    },
+    {
+      "path": ".codex/skills/ui-design/SKILL.md",
+      "sha256": "483100d267b631b8bd76766295e8d2e9ffe7f5af5976630b2be358919420d8a3"
+    },
+    {
+      "path": ".codex/skills/ui-fidelity/agents/openai.yaml",
+      "sha256": "08eff61b4f94043ccce90e66f0c523b41c70ad7e3a34a1d2406d6dd20d390072"
+    },
+    {
+      "path": ".codex/skills/ui-fidelity/SKILL.md",
+      "sha256": "77749326a92611edc3e02aff6134c08cff587808c469e82ca69bc09ca9661cbf"
+    },
+    {
+      "path": ".codex/skills/visual-assets/agents/openai.yaml",
+      "sha256": "c3022cc533a7cd7d831a827724e54d0d0300fa2a19acb684e2cc1e61bf685f6c"
+    },
+    {
+      "path": ".codex/skills/visual-assets/references/asset-acceptance.md",
+      "sha256": "73ae9a4a138c230440cf9d1ba7fe20ada0e8f268eac5c9d360fe09f4ded04922"
+    },
+    {
+      "path": ".codex/skills/visual-assets/SKILL.md",
+      "sha256": "765364f7bf30d2a39db4445e00eee0eac56b0bfc60854fc7ccba8239814dc26e"
+    },
+    {
+      "path": ".editorconfig",
+      "sha256": "c788fe1917c9f3610efb202456e5ea605c0df06f110a0c4125fd260e68a49edb"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "ccad2fee22508bc284b1b3c894944f8f2515bed59de092a8f27b921d60562a6d"
+    },
+    {
+      "path": ".github/workflows/project-check.yml",
+      "sha256": "8fb8b1d20f3faaa8de3cce0b503b9c7f9fec6f59edde9f5d7835e9063bd86c80"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "c8d93ab8ac43713c27ef505f5e30ca7d26f1d0106763ff2d6687d69ed27b31be"
+    },
+    {
+      "path": ".ignore",
+      "sha256": "990e8786e77e3ca1c2a98d5943b5f300ea82b5a160b347cb95b909c22c4af472"
+    },
+    {
+      "path": ".rgignore",
+      "sha256": "cc4968c06c6bccf9ed6b020fcaacdf1e36d9444d6f85b72eb34c4c1c8c54f590"
+    },
+    {
+      "path": ".template-version",
+      "sha256": "c28fcca53637bc88e124af1725df13cb98c69dedefd62fb3cdbe1cdb6b760624"
+    },
+    {
+      "path": "agent-workflows/README.md",
+      "sha256": "69296e514ad00c0ba07349a1a3bfe2e10829793530fbb6018a039a03abb72797"
+    },
+    {
+      "path": "agent-workflows/skills/docs-sync/agents/openai.yaml",
+      "sha256": "2075e3dad03086f409eb45dfeb11189bd757bce3c8e553b7da860e56a97764d2"
+    },
+    {
+      "path": "agent-workflows/skills/docs-sync/SKILL.md",
+      "sha256": "681860ad3d2afa66eaf5a6611acbf2276e8c8b152de04ce944abcc3cb2a182f9"
+    },
+    {
+      "path": "agent-workflows/skills/production-hardening/agents/openai.yaml",
+      "sha256": "862c1c33f44fddb725ba51267a80682fec5f72a74ef20d7856d3462d736d61a9"
+    },
+    {
+      "path": "agent-workflows/skills/production-hardening/references/risk-gates.md",
+      "sha256": "72c1d24cdffa43dfa09dfb78667b0ff7e0e03e1cae84253e27cdae34eef29ceb"
+    },
+    {
+      "path": "agent-workflows/skills/production-hardening/SKILL.md",
+      "sha256": "95250867132aeb026f82de9e354da9dd0021291539d4b08f648cc067c3387d42"
+    },
+    {
+      "path": "agent-workflows/skills/project-planning/agents/openai.yaml",
+      "sha256": "b4fa584f72854d6c26ca3bc0425963b1897443d74f5edb1d3a057d81dadf634e"
+    },
+    {
+      "path": "agent-workflows/skills/project-planning/references/goal-contract.md",
+      "sha256": "9c9494d09958f857f79cf0a7b001e7418ad354c219193dffbcba8b05f50c2c2f"
+    },
+    {
+      "path": "agent-workflows/skills/project-planning/SKILL.md",
+      "sha256": "8df8e587183389ca2b7ea5c66d64dec9b90c38746555d0105f2ca79afcbbf4c4"
+    },
+    {
+      "path": "agent-workflows/skills/release-readiness/agents/openai.yaml",
+      "sha256": "c7cfce9b35f32ff334c885981e5ead782f4e912546acd357519e7ca4adb21af5"
+    },
+    {
+      "path": "agent-workflows/skills/release-readiness/references/release-gates.md",
+      "sha256": "856709705ba4e536232682e9f593d69e553200e3a93f20521a773c371f659c7f"
+    },
+    {
+      "path": "agent-workflows/skills/release-readiness/SKILL.md",
+      "sha256": "1e9a3d9cf91cdcccf2a3f31dfc9f2d2d3c291200c07e9517269de29d4ce2026b"
+    },
+    {
+      "path": "agent-workflows/skills/ui-design/agents/openai.yaml",
+      "sha256": "29bd00997247775798d5b443d6ccc9a4fcd938057f60401e9e982ca1de28a2b2"
+    },
+    {
+      "path": "agent-workflows/skills/ui-design/references/design-system-gate.md",
+      "sha256": "f333fd091576141f49a0cae85cfb4320e133595ddb2e368fd1db526826fed84c"
+    },
+    {
+      "path": "agent-workflows/skills/ui-design/SKILL.md",
+      "sha256": "483100d267b631b8bd76766295e8d2e9ffe7f5af5976630b2be358919420d8a3"
+    },
+    {
+      "path": "agent-workflows/skills/ui-fidelity/agents/openai.yaml",
+      "sha256": "08eff61b4f94043ccce90e66f0c523b41c70ad7e3a34a1d2406d6dd20d390072"
+    },
+    {
+      "path": "agent-workflows/skills/ui-fidelity/SKILL.md",
+      "sha256": "77749326a92611edc3e02aff6134c08cff587808c469e82ca69bc09ca9661cbf"
+    },
+    {
+      "path": "agent-workflows/skills/visual-assets/agents/openai.yaml",
+      "sha256": "c3022cc533a7cd7d831a827724e54d0d0300fa2a19acb684e2cc1e61bf685f6c"
+    },
+    {
+      "path": "agent-workflows/skills/visual-assets/references/asset-acceptance.md",
+      "sha256": "73ae9a4a138c230440cf9d1ba7fe20ada0e8f268eac5c9d360fe09f4ded04922"
+    },
+    {
+      "path": "agent-workflows/skills/visual-assets/SKILL.md",
+      "sha256": "765364f7bf30d2a39db4445e00eee0eac56b0bfc60854fc7ccba8239814dc26e"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7f0acceb490458fddc92c6560833dcf0d6b8dd581c3320a0b00994ba895833e8"
+    },
+    {
+      "path": "artifacts/README.md",
+      "sha256": "d199c2b2e7b64bdab5fef1ac2d802a7252fd0f1d10b00432f7f64443a4a6fbcf"
+    },
+    {
+      "path": "artifacts/releases/manifest-template.json",
+      "sha256": "ab0dd925f16f2e10e77090d3334cfba93a86f24f642f903c541bf8a22b44830a"
+    },
+    {
+      "path": "artifacts/releases/README.md",
+      "sha256": "2bf9b81129524fc4a21ea20eb902ec64e86253f43dee671ab5801a82830e55e1"
+    },
+    {
+      "path": "assets/ui-concepts/approved/README.md",
+      "sha256": "2a41bde8f34d9aa84469623021578acb97e6a7464838726ba52db4e389475d09"
+    },
+    {
+      "path": "assets/ui-concepts/design-system-template.md",
+      "sha256": "cc6e8fc78b2c18a0877478637aff52594b5f8e3fe00073c8e2648e9abd87d9fd"
+    },
+    {
+      "path": "assets/ui-concepts/option-a/README.md",
+      "sha256": "4a975e0f81c8b974f02ff262712365263d445c0f923633525cd18af019cc0af4"
+    },
+    {
+      "path": "assets/ui-concepts/option-b/README.md",
+      "sha256": "05f6e9ce7bb1f36e821633ee74fcd3a785f38f40eb812747f509d3567e0736b9"
+    },
+    {
+      "path": "assets/ui-concepts/README.md",
+      "sha256": "780aa38fcd4cf5520ae57c9ac75def0b8f65939a2fdd53e9d18ac21a77ecd47c"
+    },
+    {
+      "path": "assets/ui-concepts/ui-manifest.json",
+      "sha256": "31785f16d69c04813f430e2877b1c6555de43011a4a1467ab176cf99bc73beda"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "cac745fed5a05c8bc5b6a22fffa86d67632ad1bfed04eaf3b08ddc2a8959dac3"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "0f6e1f21dc0dc7379b607bac64069cb7136e9eb5432f4ef4ba7d47a3ad41d880"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "11be0b459140fa591bf15e8f31162a1d61c957bd368e6b2b5d72f982eec2e520"
+    },
+    {
+      "path": "docs/blocks/BLOCK-template.md",
+      "sha256": "694c013a9bf8fd52904f3244a300e16014d702a01fedfdbbbe652fabfbdbf2b9"
+    },
+    {
+      "path": "docs/blocks/README.md",
+      "sha256": "9eac1a5bb7b351e62e8414f9d9317c17c2bc23dcc0b9f45cc53138b37d105bb0"
+    },
+    {
+      "path": "docs/commands.md",
+      "sha256": "4323b46dbc682aefa61cddcf40a67d62f3b8a3196b3fc12e0279d49f2b000bf8"
+    },
+    {
+      "path": "docs/decisions/DEC-template.md",
+      "sha256": "6ef72bafdf52bbf65bfe23abf097baebe6f081c551604274c187a2968308fb52"
+    },
+    {
+      "path": "docs/decisions/README.md",
+      "sha256": "8c20064877358d365f76bef0ed43913301aa919eb9014abdff17cb59d4230de8"
+    },
+    {
+      "path": "docs/engineering.md",
+      "sha256": "64358366fce6aedd9f5759f4a2aacacba9f673ab86a8e7a4e8655635cddeab71"
+    },
+    {
+      "path": "docs/guides/developer.md",
+      "sha256": "dade63f4a06c5cc6150e26ee6943d72e78b18e3e2cca28482f3de9cf2c62e548"
+    },
+    {
+      "path": "docs/guides/README.md",
+      "sha256": "53b9446162c3ece5744ada8bfcd532e34dad8aa58a40fd42bc6cf42ea5a34c9e"
+    },
+    {
+      "path": "docs/idea.md",
+      "sha256": "efd0066416a36ef5ac03c60f274b1fbace105a2c23347ebf30200e3401eea055"
+    },
+    {
+      "path": "docs/product.md",
+      "sha256": "fa81c5af5d9911e9ed93da68ad9469d5c511133c0adf2ac11c4b3278cee1168e"
+    },
+    {
+      "path": "docs/quality.md",
+      "sha256": "a7f291c7585340d429717baa09bdc2b71d435fe1e3999b1f517e9caf29ed7e0c"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "e1341c867bca690d932ce0454126114838a839900b44f9adeaea9aab9801ce92"
+    },
+    {
+      "path": "docs/status.md",
+      "sha256": "c03b87b9aa10090f5c8fa409d0a93c72ed8a26ae5d7062a5ed00b3651576385f"
+    },
+    {
+      "path": "docs/ui.md",
+      "sha256": "26c6c20d77c9836fb9762803018616d24865df149879d7895705cb7ead4e2c7c"
+    },
+    {
+      "path": "docs/work-items/ITEM-template.md",
+      "sha256": "d073e6ee63fa435ef3634471b65b62a6ddc5f17c4090294fe5aa0829ed57bc1a"
+    },
+    {
+      "path": "docs/work-items/README.md",
+      "sha256": "96577b6b9baa19f0cf43b13de823a946a3c045576c96ac2fc0093f9e51692b51"
+    },
+    {
+      "path": "MIGRATION.md",
+      "sha256": "0dee178c3727a94b9cc2a3740c4ab75d39be7674a9aee1f6a8e83122aedd1e7e"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e40347899c4023238b5ccdea089da2b4f4d3c1b7fb9013fcdf00648692e990cb"
+    },
+    {
+      "path": "PROJECT.md",
+      "sha256": "bc23db4d68fcf359e0e15518df752beef9dc28d8e65d0595d2dd925316180c44"
+    },
+    {
+      "path": "project/migrations/v1-to-v2.json",
+      "sha256": "7dd614a42d52f8b4443615908bd6633b8823d54cf23dee54bb75bfc7b92ddb38"
+    },
+    {
+      "path": "project/profile.json",
+      "sha256": "346c55a0c96b9d96606a5ff3a7a8de14225ca6f0372c787060241c2e822dcbad"
+    },
+    {
+      "path": "project/README.md",
+      "sha256": "4c592b4e9cc0143fb253b2e275becdbde2f78414f6eb9dff2cc5c1be05b7bb47"
+    },
+    {
+      "path": "project/release.json",
+      "sha256": "4a7af01a43b36bd626745bba2adc5ca34d5b79dbe186d462ad9fef158b4dc553"
+    },
+    {
+      "path": "project/template-contract.json",
+      "sha256": "cc1c1c772850491d15272542c0691de9f75671a9312305da685ecee199791987"
+    },
+    {
+      "path": "project/template.json",
+      "sha256": "0327817b14d046f31b36c38441126e7009f695b927548d6ec3b7a7db0d74adf3"
+    },
+    {
+      "path": "README.md",
+      "sha256": "0aa64a02c429c0131f6a60be69957c5560cbaba12e816cb37d04dea0e4f755e4"
+    },
+    {
+      "path": "scripts/lib/project-model.mjs",
+      "sha256": "67f47cc02fa405300a4d3f24a4e72f07387d66ea630300b12cbd4858a8e6f0e0"
+    },
+    {
+      "path": "scripts/project-check.mjs",
+      "sha256": "8c7b3e5fa10da18843727562ec531e900cb9fe62b6f40ae44e9a04350afaacdc"
+    },
+    {
+      "path": "scripts/project-migrate.mjs",
+      "sha256": "270ee0b51f928c121f802d1180f620f8b637f71dae8d18b75bbc9b7769753d25"
+    },
+    {
+      "path": "scripts/project-status.mjs",
+      "sha256": "5d141b1e8a8972d57f5633ea0e61931345718bd9bdaaea57a5152b18580e6448"
+    },
+    {
+      "path": "scripts/project-sync-skills.mjs",
+      "sha256": "89d1adbb627de1dfd070c25629bfe1ac50487885787e1d655a13225dd87cb8d4"
+    }
+  ]
+}

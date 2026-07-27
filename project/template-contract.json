@@ -1,0 +1,583 @@
+{
+  "version": "2.0.0",
+  "rules": [
+    {
+      "id": "TPL-INTAKE-001",
+      "area": "intake",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Accept a human idea from docs/idea.md, any human-named repository file, or the current prompt without requiring a form."
+    },
+    {
+      "id": "TPL-INTAKE-002",
+      "area": "intake",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Treat one paragraph, partial notes, blanks, and idk as sufficient planning input."
+    },
+    {
+      "id": "TPL-INTAKE-003",
+      "area": "intake",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Ask one to three focused questions at a time, place a recommended option first, and suggest names and overlooked development concerns."
+    },
+    {
+      "id": "TPL-INTAKE-004",
+      "area": "intake",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Draft a plain-language product or project destination after the first planning pass."
+    },
+    {
+      "id": "TPL-PLAN-001",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep the active release narrow while retaining lightweight later-release outcomes through the end goal."
+    },
+    {
+      "id": "TPL-PLAN-002",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Capture functional, quality, interface, data, platform, safety, and failure requirements when applicable."
+    },
+    {
+      "id": "TPL-PLAN-003",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Map every active-release requirement to a capability block, spike, or explicit deferral before implementation."
+    },
+    {
+      "id": "TPL-PLAN-004",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Decompose only the current capability block and immediate horizon into executable work items."
+    },
+    {
+      "id": "TPL-PLAN-005",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Resolve high-risk unknowns with bounded spikes before freezing dependent architecture or backlogs."
+    },
+    {
+      "id": "TPL-PLAN-006",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Require human approval of product shape, active-release outcomes, major architecture, and the first execution goal before product implementation."
+    },
+    {
+      "id": "TPL-PLAN-007",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Define each active execution goal with outcome, verification, constraints, boundaries, iteration policy, and blocked stop condition."
+    },
+    {
+      "id": "TPL-PLAN-008",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Use maturity levels L0 risk, L1 walking skeleton, L2 functional, L3 hardened, and L4 release proven."
+    },
+    {
+      "id": "TPL-PLAN-009",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Complete a manually exercised end-to-end walking skeleton before exhaustive module hardening."
+    },
+    {
+      "id": "TPL-PLAN-010",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Reassess the plan after each runtime demonstration, architecture-changing discovery, or block maturity transition."
+    },
+    {
+      "id": "TPL-PLAN-011",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Map every local requirement in the current block to a work item, spike, or explicit deferral before claiming functional maturity."
+    },
+    {
+      "id": "TPL-PLAN-012",
+      "area": "planning",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Store explicit human evidence for product-shape, major-architecture, and first-goal approval before leaving planning."
+    },
+    {
+      "id": "TPL-DOCS-001",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Give every mutable fact one canonical owner and generate secondary views where useful."
+    },
+    {
+      "id": "TPL-DOCS-002",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "A routine task should update at most its canonical work item; status changes only for handoff truth."
+    },
+    {
+      "id": "TPL-DOCS-003",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep generated status to at most twenty-five lines and exclude historical evidence narration."
+    },
+    {
+      "id": "TPL-DOCS-004",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Record durable material choices as decisions and keep unresolved choices in their owning product or block document."
+    },
+    {
+      "id": "TPL-DOCS-005",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Maintain one concise copy-paste command reference and update setup guides only when setup changes."
+    },
+    {
+      "id": "TPL-DOCS-006",
+      "area": "documentation",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Create user, operator, and release guides only when the project has real behavior to document."
+    },
+    {
+      "id": "TPL-ENG-001",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep domain correctness independent from volatile UI, framework, network, storage, or platform boundaries when the separation removes real risk."
+    },
+    {
+      "id": "TPL-ENG-002",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Do not impose ports, adapters, packages, or abstractions without a demonstrated boundary, reuse, testability, or volatility benefit."
+    },
+    {
+      "id": "TPL-ENG-003",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Fix root causes and reject broad conditional band-aids, fake success, swallowed errors, and silent contract downgrades."
+    },
+    {
+      "id": "TPL-ENG-004",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Fail fast for invalid configuration, impossible state, schema mismatch, and unsupported platform assumptions."
+    },
+    {
+      "id": "TPL-ENG-005",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Handle expected external failures with explicit typed, observable, safe, documented, and tested recovery or degradation."
+    },
+    {
+      "id": "TPL-ENG-006",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Evaluate mature maintained libraries and repositories before implementing common capabilities, including license, security, maintenance, platform, and integration cost."
+    },
+    {
+      "id": "TPL-ENG-007",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Require focused automated validation plus manual inspection where runtime, visual, hardware, operational, or subjective behavior matters."
+    },
+    {
+      "id": "TPL-ENG-008",
+      "area": "engineering",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Activate measurable security, privacy, reliability, observability, migration, rollback, backup, cost, accessibility, and performance gates according to project risk."
+    },
+    {
+      "id": "TPL-ENV-001",
+      "area": "environment",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Define first-time setup, pinned runtimes, package management, services, secrets, verification, and CI parity before implementation."
+    },
+    {
+      "id": "TPL-ENV-002",
+      "area": "environment",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Support Linux and Windows development explicitly when both are target environments."
+    },
+    {
+      "id": "TPL-ENV-003",
+      "area": "environment",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Prefer containers or devcontainers for shared runtimes, services, databases, queues, and CI parity when they reduce cross-platform drift."
+    },
+    {
+      "id": "TPL-ENV-004",
+      "area": "environment",
+      "appliesTo": [
+        "mobile",
+        "desktop",
+        "hardware"
+      ],
+      "requirement": "Keep native SDKs, simulators, hardware access, signing, installers, and platform-specific packaging on the host when containers reduce reliability."
+    },
+    {
+      "id": "TPL-ENV-005",
+      "area": "environment",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Validate setup and release commands from a clean supported environment."
+    },
+    {
+      "id": "TPL-UI-001",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Define user flows, product states, errors, permissions, and contracts before final visual implementation while validating them through an early thin interface."
+    },
+    {
+      "id": "TPL-UI-002",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Generate exactly two complete visual directions when direction is unresolved; permit one existing direction when brand or human choice already resolves it."
+    },
+    {
+      "id": "TPL-UI-003",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Use the image generation skill for concept mockups and suitable custom raster assets."
+    },
+    {
+      "id": "TPL-UI-004",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Require exact semantic color, typography, spacing, shape, layout, breakpoint, component, state, asset, motion, and accessibility rules before UI implementation."
+    },
+    {
+      "id": "TPL-UI-005",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Record human selection before implementing the final visual direction."
+    },
+    {
+      "id": "TPL-UI-006",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Translate the selected direction into code-level tokens and an executable component gallery that becomes the exact implementation reference."
+    },
+    {
+      "id": "TPL-UI-007",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Create page, major state, modal, configuration, and responsive references just in time for each active UI block."
+    },
+    {
+      "id": "TPL-UI-008",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Generate distinct shipping raster assets one by one rather than cropping a combined generated sheet."
+    },
+    {
+      "id": "TPL-UI-009",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Prefer maintained icon systems and code-native controls for familiar interface symbols."
+    },
+    {
+      "id": "TPL-UI-010",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Capture matching viewports and important states, compare manually or by visual diff, fix drift, and record approved exceptions."
+    },
+    {
+      "id": "TPL-UI-011",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Use every approved generated shipping asset or explicitly record a human-approved replacement or deferral."
+    },
+    {
+      "id": "TPL-UI-012",
+      "area": "ui",
+      "appliesTo": [
+        "general"
+      ],
+      "requirement": "Allow the general template to activate the complete UI workflow without changing template families."
+    },
+    {
+      "id": "TPL-UI-013",
+      "area": "ui",
+      "appliesTo": [
+        "ui"
+      ],
+      "requirement": "Exercise core behavior headlessly or through the thinnest unstyled real interface before final visual implementation."
+    },
+    {
+      "id": "TPL-WORK-001",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Represent tasks, bugs, features, spikes, and gates with one canonical work-item format."
+    },
+    {
+      "id": "TPL-WORK-002",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Validate work-item identity, type, status, block, requirements, dependencies, maturity, criteria, and evidence."
+    },
+    {
+      "id": "TPL-WORK-003",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Treat a work item as ready only when dependencies and required external inputs are satisfied and validation is known."
+    },
+    {
+      "id": "TPL-WORK-004",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Accept human bug reports in any format and let the agent own triage and routing."
+    },
+    {
+      "id": "TPL-WORK-005",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Allow an immediate local bug to close through a root-cause fix, regression evidence, and commit without a permanent bug document."
+    },
+    {
+      "id": "TPL-WORK-006",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Create bug work items for unresolved, cross-block, recurring, security-sensitive, data-integrity, or release-impacting defects."
+    },
+    {
+      "id": "TPL-WORK-007",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Define specific observable success criteria before hardening and require more than passing tests for production completion."
+    },
+    {
+      "id": "TPL-WORK-008",
+      "area": "work",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Derive queue, dependency, traceability, block maturity, and release views from canonical work items and release state."
+    },
+    {
+      "id": "TPL-ART-001",
+      "area": "evidence",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep disposable work evidence in a gitignored location."
+    },
+    {
+      "id": "TPL-ART-002",
+      "area": "evidence",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Retain only release-relevant evidence under a versioned manifest and configurable size budget."
+    },
+    {
+      "id": "TPL-ART-003",
+      "area": "evidence",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Promote recurring validation into tests or CI and retire task-specific scripts that no longer add a distinct invariant."
+    },
+    {
+      "id": "TPL-ART-004",
+      "area": "evidence",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Require LFS or external storage policy for retained large binary evidence."
+    },
+    {
+      "id": "TPL-GIT-001",
+      "area": "git",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Inspect worktree state, stage only intended files, preserve user changes, and commit coherent validated units."
+    },
+    {
+      "id": "TPL-GIT-002",
+      "area": "git",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Use tagged imperative commits with a work-item ID when one exists."
+    },
+    {
+      "id": "TPL-GIT-003",
+      "area": "git",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Push at coherent checkpoints when a remote exists, but never update documentation solely to record a successful push."
+    },
+    {
+      "id": "TPL-GIT-004",
+      "area": "git",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Record an unpushed-work blocker only when it materially affects handoff."
+    },
+    {
+      "id": "TPL-AGENT-001",
+      "area": "agent",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep human.md human-only and never read, summarize, edit, stage, commit, or use it as agent context."
+    },
+    {
+      "id": "TPL-AGENT-002",
+      "area": "agent",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Keep root agent guidance concise and route repeatable procedures to focused progressively disclosed skills."
+    },
+    {
+      "id": "TPL-AGENT-003",
+      "area": "agent",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Publish repository skills to current Codex and Claude discovery locations from one canonical skill source."
+    },
+    {
+      "id": "TPL-AGENT-004",
+      "area": "agent",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Give skills narrow positive and negative trigger boundaries and deterministic scripts where mechanical enforcement matters."
+    },
+    {
+      "id": "TPL-SOURCE-001",
+      "area": "template-source",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Generate all template repositories from one versioned canonical source plus profiles and capabilities."
+    },
+    {
+      "id": "TPL-SOURCE-002",
+      "area": "template-source",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Provide deterministic rendering, export drift checks, migrations, changelog, and template provenance."
+    },
+    {
+      "id": "TPL-SOURCE-003",
+      "area": "template-source",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Run structural, scenario, skill, migration, and large-backlog checks on Linux and Windows."
+    },
+    {
+      "id": "TPL-SOURCE-004",
+      "area": "template-source",
+      "appliesTo": [
+        "all"
+      ],
+      "requirement": "Prevent removal of a contract rule unless the parity map records explicit human approval."
+    }
+  ]
+}

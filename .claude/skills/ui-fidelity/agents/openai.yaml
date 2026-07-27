@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI Fidelity"
+  short_description: "Match implemented UI to approved references"
+  default_prompt: "Use $ui-fidelity to compare the active UI block against its approved references and fix drift."
+policy:
+  allow_implicit_invocation: true

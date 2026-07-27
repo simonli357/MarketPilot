@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "templateVersion": "2.0.0",
+  "id": "desktop",
+  "label": "Desktop App",
+  "description": "desktop application",
+  "projectNoun": "product",
+  "interfaceNoun": "desktop UI",
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "distribution": "desktop",
+  "capabilities": {
+    "ui": true,
+    "network": "auto",
+    "persistence": "auto",
+    "containers": "hybrid",
+    "native": true,
+    "hardware": "auto"
+  },
+  "risks": {
+    "sensitiveData": "auto",
+    "money": "auto",
+    "realtime": "auto",
+    "hardware": "auto"
+  },
+  "environmentNote": "Use containers for shared services and reproducible CLI tooling; keep GUI runtime, OS integration, signing, installers, and hardware access native.",
+  "workflow": {
+    "maxInProgress": 1
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "ai-assisted-desktop-template",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "project:check": "node scripts/project-check.mjs",
+    "project:status": "node scripts/project-status.mjs",
+    "project:skills": "node scripts/project-sync-skills.mjs",
+    "project:migrate": "node scripts/project-migrate.mjs"
+  }
+}

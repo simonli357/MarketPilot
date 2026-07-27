@@ -1,0 +1,6 @@
+interface:
+  display_name: "Docs Sync"
+  short_description: "Audit and repair project documentation drift"
+  default_prompt: "Use $docs-sync to audit the affected documentation owners and repair real drift."
+policy:
+  allow_implicit_invocation: true

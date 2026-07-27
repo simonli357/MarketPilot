@@ -1,0 +1,6 @@
+interface:
+  display_name: "Release Readiness"
+  short_description: "Run an evidence-based release go or no-go"
+  default_prompt: "Use $release-readiness to audit the current release target and record a defensible verdict."
+policy:
+  allow_implicit_invocation: false

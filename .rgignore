@@ -1,0 +1,6 @@
+human.md
+node_modules/
+dist/
+build/
+coverage/
+artifacts/work/
