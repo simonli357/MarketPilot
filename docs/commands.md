@@ -1,6 +1,6 @@
 # Commands
 
-Keep this file copy-pasteable. Replace placeholders as tooling becomes real; explanations belong in the owning guide.
+Run commands from the repository root. The authenticated smoke is intentionally separate from normal validation.
 
 ## Project Workflow
 
@@ -14,30 +14,27 @@ npm run project:migrate
 ## Setup
 
 ```bash
-# install dependencies
-# start shared services
-# verify a clean setup
+npm ci
+npm run project:check
 ```
 
-## Develop
+## Codex Runtime Validation
 
 ```bash
-# start the application or primary program
-# run a focused check
+npm run test:codex
+npm run codex:compatibility
+npm audit
 ```
 
-## Validate
+## Opt-In Authenticated Smoke
 
 ```bash
-# format or lint
-# type or static checks
-# unit and integration checks
-# system or end-to-end checks
+npm run codex:auth-smoke -- --help
+npm run codex:auth-smoke -- --login
 ```
+
+The second command may open the system browser and run the fixed public-fixture Sol Ultra turn. It never accepts API tokens, prompts, or custom fixture content.
 
 ## Package And Release
 
-```bash
-# build or package
-# validate the release artifact
-```
+No application packaging or release command exists at L0.

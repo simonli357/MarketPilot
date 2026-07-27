@@ -1,5 +1,5 @@
 {
-  "name": "ai-assisted-desktop-template",
+  "name": "marketpilot",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,9 +7,15 @@
     "node": ">=22"
   },
   "scripts": {
+    "codex:auth-smoke": "node scripts/codex-authenticated-smoke.mjs",
+    "codex:compatibility": "node scripts/codex-compatibility.mjs",
     "project:check": "node scripts/project-check.mjs",
     "project:status": "node scripts/project-status.mjs",
     "project:skills": "node scripts/project-sync-skills.mjs",
-    "project:migrate": "node scripts/project-migrate.mjs"
+    "project:migrate": "node scripts/project-migrate.mjs",
+    "test:codex": "node --test test/codex/*.test.mjs"
+  },
+  "dependencies": {
+    "@openai/codex": "0.145.0"
   }
 }

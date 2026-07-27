@@ -7,25 +7,24 @@
   "projectNoun": "product",
   "interfaceNoun": "desktop UI",
   "platforms": [
-    "linux",
-    "windows"
+    "linux"
   ],
   "distribution": "desktop",
   "capabilities": {
     "ui": true,
-    "network": "auto",
-    "persistence": "auto",
+    "network": true,
+    "persistence": true,
     "containers": "hybrid",
     "native": true,
-    "hardware": "auto"
+    "hardware": false
   },
   "risks": {
-    "sensitiveData": "auto",
-    "money": "auto",
-    "realtime": "auto",
-    "hardware": "auto"
+    "sensitiveData": true,
+    "money": true,
+    "realtime": true,
+    "hardware": false
   },
-  "environmentNote": "Use containers for shared services and reproducible CLI tooling; keep GUI runtime, OS integration, signing, installers, and hardware access native.",
+  "environmentNote": "Ubuntu 24.04 x86_64 is the only V1 target. Validate Electron, Secret Service/keyring, Codex supervision, Unix sockets, IB Gateway/TWS API, packaging, signing, update, and cleanup natively; containers may cover only reproducible non-GUI tooling.",
   "workflow": {
     "maxInProgress": 1
   }

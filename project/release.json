@@ -1,25 +1,32 @@
 {
   "schemaVersion": 1,
   "release": "V1",
-  "phase": "intake",
+  "phase": "skeleton",
   "decision": "no-go",
   "requiredMaturity": "L3",
-  "requiredBlocks": [],
+  "requiredBlocks": [
+    "BLK-agent-runtime",
+    "BLK-market-intelligence",
+    "BLK-strategy-evaluation",
+    "BLK-broker-execution",
+    "BLK-operator-desktop",
+    "BLK-secure-runtime"
+  ],
   "planningApprovals": [
     {
       "id": "product-shape",
-      "status": "pending",
-      "evidence": null
+      "status": "approved",
+      "evidence": "User message on 2026-07-27, immediately following the complete proposed MarketPilot V1 plan: \"Implement the plan.\""
     },
     {
       "id": "major-architecture",
-      "status": "pending",
-      "evidence": null
+      "status": "approved",
+      "evidence": "User message on 2026-07-27, immediately following the proposed Python-authority, Electron-desktop, pinned Codex app-server, licensed-data, and IBKR Gateway architecture: \"Implement the plan.\""
     },
     {
       "id": "first-goal",
-      "status": "pending",
-      "evidence": null
+      "status": "approved",
+      "evidence": "User message on 2026-07-27, immediately following the proposed WI-001 isolated Sol Ultra app-server goal: \"Implement the plan.\""
     }
   ],
   "gates": [
@@ -27,8 +34,11 @@
       "id": "requirements",
       "name": "Active-release requirements are mapped and accepted",
       "required": true,
-      "status": "open",
-      "evidence": [],
+      "status": "pass",
+      "evidence": [
+        "docs/product.md global V1 requirements mapped to required blocks, bounded spikes, or explicit deferrals",
+        "Human approval evidence in project/release.json planningApprovals"
+      ],
       "blockers": [],
       "deferrals": []
     },
@@ -89,7 +99,7 @@
     {
       "id": "network-reliability",
       "name": "Network failure, retry, timeout, compatibility, and observability are proven",
-      "required": false,
+      "required": true,
       "status": "open",
       "evidence": [],
       "blockers": [],
@@ -98,7 +108,7 @@
     {
       "id": "data-migrations",
       "name": "Persistence migration, recovery, backup, and rollback are proven",
-      "required": false,
+      "required": true,
       "status": "open",
       "evidence": [],
       "blockers": [],
@@ -125,7 +135,7 @@
     {
       "id": "security-privacy",
       "name": "Trust boundaries, authorization, privacy, secrets, retention, and abuse cases are proven",
-      "required": false,
+      "required": true,
       "status": "open",
       "evidence": [],
       "blockers": [],
@@ -134,7 +144,7 @@
     {
       "id": "money-integrity",
       "name": "Value invariants, authorization, idempotency, reconciliation, and auditability are proven",
-      "required": false,
+      "required": true,
       "status": "open",
       "evidence": [],
       "blockers": [],
@@ -143,7 +153,38 @@
     {
       "id": "realtime-performance",
       "name": "Named realtime workload, resource budgets, soak, and regression thresholds pass",
-      "required": false,
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [],
+      "deferrals": []
+    },
+    {
+      "id": "licensed-event-rights",
+      "name": "Required event coverage and hosted-processing rights are contracted and proven",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [
+        "WI-002 and explicit user approval of the selected vendor contracts and price"
+      ],
+      "deferrals": []
+    },
+    {
+      "id": "fhsa-broker-readiness",
+      "name": "Actual IBKR FHSA, paper, Gateway, permissions, subscriptions, and order behavior are proven",
+      "required": true,
+      "status": "open",
+      "evidence": [],
+      "blockers": [
+        "WI-003 external account and Gateway prerequisites"
+      ],
+      "deferrals": []
+    },
+    {
+      "id": "strategy-qualification",
+      "name": "The position candidate passes paper and bounded micro-live qualification",
+      "required": true,
       "status": "open",
       "evidence": [],
       "blockers": [],
