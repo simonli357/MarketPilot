@@ -48,3 +48,4 @@ No CI, application build, package, migration, shared service, or release artifac
 - A skill or MCP inventory mismatch is a capability-containment failure. Inspect the redacted report and update the pinned compatibility policy; do not ignore the extra capability.
 - A signed-out authenticated smoke remains incomplete until the owner explicitly reruns it with `--login` and completes the browser flow.
 - Do not manually copy or create `auth.json`. Keyring unavailability is a fail-closed host problem.
+- If an authenticated smoke is forcibly killed and a later run reports `RUNTIME_BUSY`, do not delete its lease file: the dead parent does not prove that every Codex or MCP descendant is gone. Close any known MarketPilot/Codex processes, fully end the graphical user session so its runtime directory is recreated, or reboot the host before retrying.

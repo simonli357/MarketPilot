@@ -8,7 +8,31 @@ const DEFAULT_MAX_LINE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_STOP_TIMEOUT_MS = 1_000;
 const DEFAULT_STDERR_MAX_BYTES = 64 * 1024;
+const PROCESS_GROUP_POLL_INTERVAL_MS = 25;
+// Reaping can lag delivery of SIGKILL, especially when the host is busy. Keep
+// that observation period distinct from the caller's graceful-stop budget.
+const MIN_PROCESS_GROUP_REAP_TIMEOUT_MS = 500;
 const EXACT_SERVER_REQUEST_METHODS = Symbol("exactServerRequestMethods");
+
+const DEFAULT_PROCESS_GROUP_CONTROL = Object.freeze({
+  /** @param {number} pgid @param {NodeJS.Signals | 0} signal */
+  signal(pgid, signal) {
+    return process.kill(-pgid, signal);
+  },
+});
+
+const DEFAULT_CLEANUP_SCHEDULER = Object.freeze({
+  /** @param {() => void} callback @param {number} delayMs */
+  schedule(callback, delayMs) {
+    // Cleanup timers are ownership handles. They must keep the supervisor
+    // alive until ESRCH proves the group absent or cleanup fails closed.
+    return setTimeout(callback, delayMs);
+  },
+  /** @param {NodeJS.Timeout} timer */
+  cancel(timer) {
+    clearTimeout(timer);
+  },
+});
 
 /** @typedef {"idle" | "starting" | "running" | "stopping" | "stopped" | "failed"} AppServerClientState */
 
@@ -200,6 +224,8 @@ export class AppServerClient extends EventEmitter {
    * @param {(text: string) => string} [options.redact]
    * @param {ServerRequestHandler} [options.serverRequestHandler]
    * @param {() => void | Promise<void>} [options.beforeSpawn]
+   * @param {{signal: (pgid: number, signal: NodeJS.Signals | 0) => boolean}} [options.processGroupControl] Narrow deterministic test seam.
+   * @param {{schedule: (callback: () => void, delayMs: number) => NodeJS.Timeout, cancel: (timer: NodeJS.Timeout) => void}} [options.cleanupScheduler] Narrow deterministic test seam.
    */
   constructor({
     command,
@@ -213,6 +239,8 @@ export class AppServerClient extends EventEmitter {
     redact = defaultRedact,
     serverRequestHandler = createExactServerRequestHandler({}),
     beforeSpawn = () => {},
+    processGroupControl = DEFAULT_PROCESS_GROUP_CONTROL,
+    cleanupScheduler = DEFAULT_CLEANUP_SCHEDULER,
   }) {
     super();
 
@@ -235,6 +263,16 @@ export class AppServerClient extends EventEmitter {
     if (typeof beforeSpawn !== "function") {
       throw new TypeError("beforeSpawn must be a function");
     }
+    if (!processGroupControl || typeof processGroupControl.signal !== "function") {
+      throw new TypeError("processGroupControl.signal must be a function");
+    }
+    if (
+      !cleanupScheduler ||
+      typeof cleanupScheduler.schedule !== "function" ||
+      typeof cleanupScheduler.cancel !== "function"
+    ) {
+      throw new TypeError("cleanupScheduler must provide schedule and cancel functions");
+    }
 
     this._command = command;
     this._args = Object.freeze([...args]);
@@ -247,6 +285,8 @@ export class AppServerClient extends EventEmitter {
     this._redact = redact;
     this._serverRequestHandler = serverRequestHandler;
     this._beforeSpawn = beforeSpawn;
+    this._processGroupControl = processGroupControl;
+    this._cleanupScheduler = cleanupScheduler;
     const exactServerRequestMethods = Reflect.get(
       serverRequestHandler,
       EXACT_SERVER_REQUEST_METHODS,
@@ -269,8 +309,11 @@ export class AppServerClient extends EventEmitter {
     this._closePromise = null;
     /** @type {((value?: void | PromiseLike<void>) => void) | null} */
     this._resolveClose = null;
-    /** @type {NodeJS.Timeout | null} */
-    this._killTimer = null;
+    /** @type {((reason?: unknown) => void) | null} */
+    this._rejectClose = null;
+    this._processGeneration = 0;
+    /** @type {ProcessGroupOwnership | null} */
+    this._processGroup = null;
     this._expectedStop = false;
     this._spawned = false;
     this._nextRequestId = 1;
@@ -350,7 +393,11 @@ export class AppServerClient extends EventEmitter {
     if (this._state === "stopping") {
       throw new AppServerStateError("CLIENT_STOPPING", "Cannot start app-server while it is stopping");
     }
-    if (this._state === "failed" && this._child !== null) {
+    if (
+      this._state === "failed" &&
+      (this._child !== null || this._processGroup !== null) &&
+      this._closePromise !== null
+    ) {
       await this._closePromise;
     }
 
@@ -362,9 +409,23 @@ export class AppServerClient extends EventEmitter {
       this._rejectStart = reject;
     });
     this._startPromise = startPromise;
-    this._closePromise = new Promise((resolve) => {
+    this._closePromise = new Promise((resolve, reject) => {
       this._resolveClose = resolve;
+      this._rejectClose = reject;
     });
+    // A cleanup failure remains observable through stop()/start(), lastError,
+    // and incident. Avoid a process-level unhandled rejection when a caller is
+    // already awaiting only the start or request promise.
+    void this._closePromise.catch(() => {});
+
+    if (process.platform === "win32") {
+      const error = new AppServerProcessError(
+        "PROCESS_GROUP_UNSUPPORTED",
+        "Controlled app-server process groups require a POSIX host",
+      );
+      this._failBeforeSpawn(error);
+      return startPromise;
+    }
 
     try {
       // Security-sensitive callers use this hook to re-open and hash the exact
@@ -398,6 +459,10 @@ export class AppServerClient extends EventEmitter {
       child = spawn(this._command, this._args, {
         cwd: this._cwd,
         env: this._env,
+        // On POSIX this makes the direct child a new session and process-group
+        // leader. Keep the ChildProcess referenced: detached here is ownership
+        // topology, not backgrounding, and unref() is deliberately forbidden.
+        detached: true,
         shell: false,
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],
@@ -414,8 +479,12 @@ export class AppServerClient extends EventEmitter {
     }
 
     this._child = child;
+    if (Number.isSafeInteger(child.pid) && /** @type {number} */ (child.pid) > 0) {
+      this._captureProcessGroup(child, /** @type {number} */ (child.pid));
+    }
     child.once("spawn", () => this._onSpawn(child));
     child.once("error", (cause) => this._onChildError(child, cause));
+    child.once("exit", (code, signal) => this._onLeaderExit(child, code, signal));
     child.once("close", (code, signal) => this._onClose(child, code, signal));
     child.stdin.on("error", (cause) => this._onStreamError(child, "stdin", cause));
     child.stdout.on("error", (cause) => this._onStreamError(child, "stdout", cause));
@@ -568,12 +637,19 @@ export class AppServerClient extends EventEmitter {
     if (!child.stdin.destroyed) {
       child.stdin.end();
     }
-    this._scheduleKill(child);
+    if (this._processGroup !== null) {
+      this._beginProcessGroupCleanup(this._processGroup, { graceful: true });
+    }
     return this._closePromise ?? undefined;
   }
 
   _resetConnection() {
-    this._clearKillTimer();
+    if (this._processGroup !== null) {
+      throw new AppServerStateError(
+        "PROCESS_GROUP_STILL_OWNED",
+        "Cannot reset while an app-server process group is still owned",
+      );
+    }
     this._expectedStop = false;
     this._spawned = false;
     this._nextRequestId = 1;
@@ -592,6 +668,7 @@ export class AppServerClient extends EventEmitter {
     this._rejectStart = null;
     this._closePromise = null;
     this._resolveClose = null;
+    this._rejectClose = null;
   }
 
   /** @param {AppServerClientState} state */
@@ -616,10 +693,29 @@ export class AppServerClient extends EventEmitter {
 
   /** @param {import("node:child_process").ChildProcessWithoutNullStreams} child */
   _onSpawn(child) {
-    if (child !== this._child || this._state !== "starting") {
+    if (child !== this._child) {
       return;
     }
+    if (this._processGroup === null) {
+      if (!Number.isSafeInteger(child.pid) || /** @type {number} */ (child.pid) <= 0) {
+        this._fatal(
+          new AppServerProcessError(
+            "PROCESS_GROUP_ID_INVALID",
+            "Spawned app-server did not provide a valid process-group identity",
+          ),
+        );
+        return;
+      }
+      this._captureProcessGroup(child, /** @type {number} */ (child.pid));
+    }
     this._spawned = true;
+    if (this._state === "stopping" || this._state === "failed") {
+      this._beginProcessGroupCleanup(this._processGroup, {
+        graceful: this._expectedStop && this._lastError === null,
+      });
+      return;
+    }
+    if (this._state !== "starting") return;
     this._setState("running");
     this._resolveStart?.();
     this._resolveStart = null;
@@ -932,6 +1028,42 @@ export class AppServerClient extends EventEmitter {
   }
 
   /**
+   * The OS leader can exit before Node emits `close` when a descendant keeps
+   * inherited stdio descriptors open. Begin descendant cleanup on `exit`, but
+   * retain the child and close promise until the later `close` event and ESRCH
+   * group proof have both occurred.
+   *
+   * @param {import("node:child_process").ChildProcessWithoutNullStreams} child
+   * @param {number | null} code
+   * @param {NodeJS.Signals | null} signal
+   */
+  _onLeaderExit(child, code, signal) {
+    if (child !== this._child) return;
+    const group = this._processGroup;
+    if (group === null || group.child !== child) return;
+    group.leaderExited = true;
+    group.exitCode = code;
+    group.exitSignal = signal;
+
+    if (!this._expectedStop && this._lastError === null) {
+      this._lastError = new AppServerProcessError(
+        "PROCESS_EXIT",
+        "App-server process exited unexpectedly",
+        { exitCode: code, signal, stderr: this.stderr },
+      );
+    }
+    if (this._lastError !== null) {
+      this._rejectStart?.(this._lastError);
+      this._rejectAllPending(this._lastError);
+      this._setState("failed");
+    }
+
+    // Even an expected EOF-driven leader exit ends the grace phase: TERM the
+    // remaining descendants immediately, then retain bounded KILL escalation.
+    this._beginProcessGroupCleanup(group, { graceful: false });
+  }
+
+  /**
    * @param {import("node:child_process").ChildProcessWithoutNullStreams} child
    * @param {number | null} code
    * @param {NodeJS.Signals | null} signal
@@ -941,7 +1073,6 @@ export class AppServerClient extends EventEmitter {
       return;
     }
     this._finishStderr();
-    this._clearKillTimer();
 
     if (this._stdoutBuffer.length > 0 && this._lastError === null) {
       this._lastError = new AppServerProtocolError(
@@ -972,19 +1103,40 @@ export class AppServerClient extends EventEmitter {
       this._rejectAllPending(this._lastError);
     }
 
-    this._child = null;
-    this._setState(this._expectedStop && this._lastError === null ? "stopped" : "failed");
-    this.emit("exit", {
-      expected: this._expectedStop,
-      exitCode: code,
-      signal,
-      stderr: this.stderr,
-      error: this._lastError,
-    });
-    this._resolveClose?.();
-    this._resolveClose = null;
-    this._resolveStart = null;
-    this._rejectStart = null;
+    const group = this._processGroup;
+    if (group === null) {
+      // An OS-level spawn failure can close without ever yielding a PID/PGID.
+      this._child = null;
+      this._setState(this._expectedStop && this._lastError === null ? "stopped" : "failed");
+      this._emitLeaderExit(code, signal);
+      this._resolveClose?.();
+      this._clearCloseCallbacks();
+      return;
+    }
+    if (group.child !== child) {
+      this._failProcessGroupCleanup(
+        group,
+        new AppServerProcessError(
+          "PROCESS_GROUP_GENERATION_MISMATCH",
+          "App-server leader closed under a different process-group generation",
+        ),
+      );
+      return;
+    }
+
+    group.leaderExited = true;
+    group.leaderClosed = true;
+    group.exitCode = code;
+    group.exitSignal = signal;
+    if (!this._expectedStop) this._setState("failed");
+
+    // A leader can exit while its descendants remain. Continue (or begin)
+    // negative-PGID cleanup and do not settle close until an ESRCH probe proves
+    // that the complete controlled group is absent.
+    this._beginProcessGroupCleanup(group);
+    if (group.cleanupError === null) this._probeProcessGroup(group);
+    if (group.cleanupError !== null) this._emitLeaderExit(code, signal);
+    this._maybeFinalizeProcessGroup(group);
   }
 
   /** @param {AppServerError} error */
@@ -993,6 +1145,7 @@ export class AppServerClient extends EventEmitter {
     this._setState("failed");
     this._rejectStart?.(error);
     this._resolveClose?.();
+    this._clearCloseCallbacks();
   }
 
   /** @param {AppServerError} error */
@@ -1011,9 +1164,8 @@ export class AppServerClient extends EventEmitter {
       if (!child.stdin.destroyed) {
         child.stdin.end();
       }
-      if (child.exitCode === null && child.signalCode === null) {
-        child.kill("SIGTERM");
-        this._scheduleKill(child);
+      if (this._processGroup !== null) {
+        this._beginProcessGroupCleanup(this._processGroup);
       }
     }
   }
@@ -1104,22 +1256,297 @@ export class AppServerClient extends EventEmitter {
     );
   }
 
-  /** @param {import("node:child_process").ChildProcessWithoutNullStreams} child */
-  _scheduleKill(child) {
-    this._clearKillTimer();
-    this._killTimer = setTimeout(() => {
-      if (this._child === child && child.exitCode === null && child.signalCode === null) {
-        child.kill("SIGKILL");
-      }
-    }, this._stopTimeoutMs);
-    this._killTimer.unref?.();
+  /**
+   * @param {import("node:child_process").ChildProcessWithoutNullStreams} child
+   * @param {number} pgid
+   */
+  _captureProcessGroup(child, pgid) {
+    if (this._processGroup !== null) {
+      throw new AppServerStateError(
+        "PROCESS_GROUP_ALREADY_OWNED",
+        "Cannot capture a second app-server process group",
+      );
+    }
+    const identity = Object.freeze({
+      generation: ++this._processGeneration,
+      pgid,
+    });
+    this._processGroup = {
+      identity,
+      child,
+      leaderExited: false,
+      leaderClosed: false,
+      cleanupStarted: false,
+      groupAbsent: false,
+      cleanupError: null,
+      phase: "owned",
+      timer: null,
+      killProbeAttempts: 0,
+      exitCode: null,
+      exitSignal: null,
+      exitEmitted: false,
+    };
   }
 
-  _clearKillTimer() {
-    if (this._killTimer !== null) {
-      clearTimeout(this._killTimer);
-      this._killTimer = null;
+  /** @param {ProcessGroupOwnership} group @param {{graceful?: boolean}} [options] */
+  _beginProcessGroupCleanup(group, { graceful = false } = {}) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null) return;
+    if (group.cleanupStarted) {
+      if (!graceful && group.phase === "grace") {
+        this._cancelProcessGroupTimer(group);
+        this._sendProcessGroupTerm(group);
+      }
+      return;
     }
+    group.cleanupStarted = true;
+    if (graceful && !group.leaderExited) {
+      group.phase = "grace";
+      this._scheduleProcessGroupTimer(group, this._stopTimeoutMs, () => {
+        this._sendProcessGroupTerm(group);
+      });
+      return;
+    }
+    this._sendProcessGroupTerm(group);
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _sendProcessGroupTerm(group) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null || group.groupAbsent) {
+      return;
+    }
+    group.phase = "term";
+    const outcome = this._signalProcessGroup(group, "SIGTERM");
+    if (outcome !== "present") return;
+    this._scheduleProcessGroupTimer(group, this._stopTimeoutMs, () => {
+      this._escalateProcessGroup(group);
+    });
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _escalateProcessGroup(group) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null || group.groupAbsent) {
+      return;
+    }
+    group.phase = "kill";
+    const outcome = this._signalProcessGroup(group, "SIGKILL");
+    if (outcome !== "present") return;
+    group.killProbeAttempts = 0;
+    this._scheduleKillProbe(group);
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _scheduleKillProbe(group) {
+    const reapTimeoutMs = Math.max(
+      MIN_PROCESS_GROUP_REAP_TIMEOUT_MS,
+      this._stopTimeoutMs,
+    );
+    const delayMs = Math.min(PROCESS_GROUP_POLL_INTERVAL_MS, reapTimeoutMs);
+    const maximumAttempts = Math.max(1, Math.ceil(reapTimeoutMs / delayMs));
+    this._scheduleProcessGroupTimer(group, delayMs, () => {
+      if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null || group.groupAbsent) {
+        return;
+      }
+      const outcome = this._probeProcessGroup(group);
+      if (outcome !== "present") return;
+      group.killProbeAttempts += 1;
+      if (group.killProbeAttempts >= maximumAttempts) {
+        this._failProcessGroupCleanup(
+          group,
+          new AppServerProcessError(
+            "PROCESS_GROUP_CLEANUP_TIMEOUT",
+            "App-server process group remained present after bounded SIGKILL cleanup",
+          ),
+        );
+        return;
+      }
+      this._scheduleKillProbe(group);
+    });
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _probeProcessGroup(group) {
+    return this._signalProcessGroup(group, 0);
+  }
+
+  /**
+   * @param {ProcessGroupOwnership} group
+   * @param {NodeJS.Signals | 0} signal
+   * @returns {"present" | "absent" | "failed"}
+   */
+  _signalProcessGroup(group, signal) {
+    if (group.groupAbsent) return "absent";
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null) return "failed";
+    try {
+      const accepted = this._processGroupControl.signal(group.identity.pgid, signal);
+      if (accepted !== true) {
+        throw new AppServerProcessError(
+          "PROCESS_GROUP_CONTROL_FAILED",
+          "Process-group control returned an unknown result",
+        );
+      }
+      return "present";
+    } catch (cause) {
+      if (cause instanceof AppServerProcessError) {
+        this._failProcessGroupCleanup(group, cause);
+        return "failed";
+      }
+      const code = nodeErrorCode(cause);
+      if (code === "ESRCH") {
+        this._markProcessGroupAbsent(group);
+        return "absent";
+      }
+      const errorCode = code === "EPERM"
+        ? "PROCESS_GROUP_CLEANUP_EPERM"
+        : code === "EINVAL"
+          ? "PROCESS_GROUP_CLEANUP_EINVAL"
+          : "PROCESS_GROUP_CONTROL_FAILED";
+      this._failProcessGroupCleanup(
+        group,
+        new AppServerProcessError(
+          errorCode,
+          "App-server process-group cleanup could not prove controlled termination",
+          {},
+          cause,
+        ),
+      );
+      return "failed";
+    }
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _markProcessGroupAbsent(group) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null) return;
+    group.groupAbsent = true;
+    this._cancelProcessGroupTimer(group);
+    this._maybeFinalizeProcessGroup(group);
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _maybeFinalizeProcessGroup(group) {
+    if (
+      !this._isCurrentProcessGroup(group) ||
+      group.cleanupError !== null ||
+      !group.leaderClosed ||
+      !group.groupAbsent
+    ) {
+      return;
+    }
+    this._cancelProcessGroupTimer(group);
+    if (group.cleanupError !== null) return;
+    this._child = null;
+    this._processGroup = null;
+    this._setState(this._expectedStop && this._lastError === null ? "stopped" : "failed");
+    this._emitLeaderExit(group.exitCode, group.exitSignal, group);
+    this._resolveClose?.();
+    this._clearCloseCallbacks();
+  }
+
+  /** @param {ProcessGroupOwnership} group @param {AppServerProcessError} error */
+  _failProcessGroupCleanup(group, error) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null) return;
+    group.cleanupError = error;
+    this._cancelProcessGroupTimer(group);
+    this._lastError = error;
+    this._rejectStart?.(error);
+    this._rejectAllPending(error);
+    this._setState("failed");
+    this.emit("incident", error);
+    this._rejectClose?.(error);
+    this._resolveClose = null;
+    this._rejectClose = null;
+    if (group.leaderClosed) {
+      this._emitLeaderExit(group.exitCode, group.exitSignal, group);
+    }
+  }
+
+  /**
+   * @param {ProcessGroupOwnership} group
+   * @param {number} delayMs
+   * @param {() => void} callback
+   */
+  _scheduleProcessGroupTimer(group, delayMs, callback) {
+    if (!this._isCurrentProcessGroup(group) || group.cleanupError !== null) return;
+    this._cancelProcessGroupTimer(group);
+    if (group.cleanupError !== null) return;
+    const generation = group.identity.generation;
+    try {
+      group.timer = this._cleanupScheduler.schedule(() => {
+        group.timer = null;
+        if (
+          !this._isCurrentProcessGroup(group) ||
+          group.identity.generation !== generation ||
+          group.cleanupError !== null
+        ) {
+          return;
+        }
+        callback();
+      }, delayMs);
+    } catch (cause) {
+      this._failProcessGroupCleanup(
+        group,
+        new AppServerProcessError(
+          "PROCESS_GROUP_SCHEDULER_FAILED",
+          "App-server process-group cleanup scheduling failed",
+          {},
+          cause,
+        ),
+      );
+    }
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _cancelProcessGroupTimer(group) {
+    if (group.timer === null) return;
+    const timer = group.timer;
+    group.timer = null;
+    try {
+      this._cleanupScheduler.cancel(timer);
+    } catch (cause) {
+      if (group.cleanupError === null) {
+        this._failProcessGroupCleanup(
+          group,
+          new AppServerProcessError(
+            "PROCESS_GROUP_SCHEDULER_FAILED",
+            "App-server process-group cleanup cancellation failed",
+            {},
+            cause,
+          ),
+        );
+      }
+    }
+  }
+
+  /** @param {ProcessGroupOwnership} group */
+  _isCurrentProcessGroup(group) {
+    return (
+      this._processGroup === group &&
+      this._processGroup.identity.generation === group.identity.generation &&
+      this._processGroup.identity.pgid === group.identity.pgid
+    );
+  }
+
+  /**
+   * @param {number | null} code
+   * @param {NodeJS.Signals | null} signal
+   * @param {ProcessGroupOwnership} [group]
+   */
+  _emitLeaderExit(code, signal, group = this._processGroup ?? undefined) {
+    if (group?.exitEmitted === true) return;
+    if (group !== undefined) group.exitEmitted = true;
+    this.emit("exit", {
+      expected: this._expectedStop,
+      exitCode: code,
+      signal,
+      stderr: this.stderr,
+      error: this._lastError,
+    });
+  }
+
+  _clearCloseCallbacks() {
+    this._resolveClose = null;
+    this._rejectClose = null;
+    this._resolveStart = null;
+    this._rejectStart = null;
   }
 }
 
@@ -1134,9 +1561,37 @@ export class AppServerClient extends EventEmitter {
  * @property {(() => void) | undefined} abortListener
  */
 
+/**
+ * One immutable OS process-group identity plus mutable cleanup state. Detached
+ * descendants that call setsid(2) leave this boundary and are intentionally
+ * not represented here; durable containment requires a stronger outer owner.
+ *
+ * @typedef {object} ProcessGroupOwnership
+ * @property {Readonly<{generation: number, pgid: number}>} identity
+ * @property {import("node:child_process").ChildProcessWithoutNullStreams} child
+ * @property {boolean} leaderExited
+ * @property {boolean} leaderClosed
+ * @property {boolean} cleanupStarted
+ * @property {boolean} groupAbsent
+ * @property {AppServerProcessError | null} cleanupError
+ * @property {"owned" | "grace" | "term" | "kill"} phase
+ * @property {NodeJS.Timeout | null} timer
+ * @property {number} killProbeAttempts
+ * @property {number | null} exitCode
+ * @property {NodeJS.Signals | null} exitSignal
+ * @property {boolean} exitEmitted
+ */
+
 /** @param {unknown} value */
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** @param {unknown} error */
+function nodeErrorCode(error) {
+  return error instanceof Error && "code" in error && typeof error.code === "string"
+    ? error.code
+    : undefined;
 }
 
 /** @param {unknown} value */
