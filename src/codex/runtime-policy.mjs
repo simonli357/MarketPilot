@@ -286,6 +286,9 @@ export function renderHardenedConfig({
     `hide_agent_reasoning = true`,
     `show_raw_agent_reasoning = false`,
     "",
+    `[tools.experimental_request_user_input]`,
+    `enabled = false`,
+    "",
     `[analytics]`,
     `enabled = false`,
     "",
@@ -315,6 +318,7 @@ export function renderHardenedConfig({
     `browser_use_full_cdp_access = false`,
     `code_mode_host = false`,
     `computer_use = false`,
+    `default_mode_request_user_input = false`,
     `fast_mode = false`,
     `goals = false`,
     `guardian_approval = false`,
@@ -367,6 +371,7 @@ export function renderHardenedConfig({
     `env_vars = []`,
     `startup_timeout_sec = 5.0`,
     `tool_timeout_sec = 5.0`,
+    `default_tools_approval_mode = "approve"`,
     `enabled_tools = [${tomlString(FIXTURE_MCP_READ_TOOL)}]`,
     `disabled_tools = []`,
     "",
@@ -376,6 +381,60 @@ export function renderHardenedConfig({
 }
 
 export const renderHardenedCodexConfig = renderHardenedConfig;
+
+/**
+ * Prove the request-user-input tool is disabled at its registration switch.
+ * Codex 0.145 does not project this experimental setting through config/read's
+ * typed `config` value, so the raw, ordered config layers are the canonical
+ * observable boundary. Only the isolated CODEX_HOME user layer may define it.
+ *
+ * @param {unknown} value
+ * @param {string} expectedConfigPath
+ */
+export function validateRequestUserInputDisabledLayers(value, expectedConfigPath) {
+  const absoluteConfigPath = requireAbsolutePath(expectedConfigPath, "Codex config path");
+  if (!Array.isArray(value)) return false;
+
+  const definitions = [];
+  for (const candidate of value) {
+    if (!isPlainRecord(candidate)) return false;
+    const disabledReason = candidate.disabledReason;
+    if (disabledReason !== undefined && disabledReason !== null) {
+      if (
+        typeof disabledReason !== "string" ||
+        disabledReason.length === 0 ||
+        disabledReason.length > 4096 ||
+        /[\0\r\n]/u.test(disabledReason)
+      ) {
+        return false;
+      }
+      continue;
+    }
+
+    const config = candidate.config;
+    if (!isPlainRecord(config)) return false;
+    const tools = config.tools;
+    if (tools === undefined) continue;
+    if (!isPlainRecord(tools)) return false;
+    const requestUserInput = tools.experimental_request_user_input;
+    if (requestUserInput === undefined) continue;
+    if (!isPlainRecord(requestUserInput)) return false;
+    if (!Object.hasOwn(requestUserInput, "enabled")) continue;
+
+    definitions.push({ layer: candidate, value: requestUserInput.enabled });
+  }
+
+  if (definitions.length !== 1) return false;
+  const definition = definitions[0];
+  const name = definition.layer.name;
+  return (
+    definition.value === false &&
+    isPlainRecord(name) &&
+    name.type === "user" &&
+    name.file === absoluteConfigPath &&
+    (name.profile === null || name.profile === undefined)
+  );
+}
 
 /**
  * Construct the complete environment for the native app-server process. Only
@@ -553,6 +612,11 @@ function tomlString(value) {
 /** @param {readonly string[]} values */
 function tomlStringArray(values) {
   return `[${values.map(tomlString).join(", ")}]`;
+}
+
+/** @param {unknown} value */
+function isPlainRecord(value) {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 /** @param {unknown} error */

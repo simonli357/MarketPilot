@@ -24,19 +24,19 @@ npm run codex:compatibility
 
 The harness has no local configuration file and accepts no API credential. Codex authentication is ChatGPT browser login with keyring-only storage in the dedicated path-derived namespace. Do not add tokens to command arguments, committed files, fixtures, or evidence.
 
-The authenticated smoke rejects common OpenAI/Codex token environment variables, accepts only its fixed public fixture, and emits no prompt, model response, login URL, account identifier, or credential. Run it only as an explicit manual action:
+The authenticated smoke rejects common OpenAI/Codex token environment variables, accepts only its fixed public fixture, and emits no prompt, model response, login URL, account identifier, or credential. Reuse an existing dedicated keyring session with:
 
 ```bash
-npm run codex:auth-smoke -- --login
+npm run codex:auth-smoke
 ```
 
-This may open the browser, use ChatGPT capacity, and leave the dedicated keyring entry intact. It never receives licensed research, broker/account data, portfolio state, or live decisions. The current reference host has unencrypted swap, so public fixtures are the only permitted input even though its per-user runtime directory is memory-backed.
+If that reports no keyring session, opt into the one-time browser flow with `npm run codex:auth-smoke -- --login`. The command uses ChatGPT capacity and leaves the dedicated keyring entry intact. It never receives licensed research, broker/account data, portfolio state, or live decisions. The current reference host has unencrypted swap, so public fixtures are the only permitted input even though its per-user runtime directory is memory-backed.
 
 ## Verification And Results
 
 - `npm run test:codex` runs the fake-process contracts and the isolated real metadata probe.
 - `npm run codex:compatibility` prints the standalone credential-free compatibility report and returns nonzero on any failed check.
-- `npm run codex:auth-smoke -- --login` prints a redacted manual checklist. Exit code `0` means every implemented check passed, `1` means failure, and `2` means required manual recovery/delegation evidence remains incomplete.
+- `npm run codex:auth-smoke` prints the redacted authenticated checklist and automates the real turn, fresh-process resume, interrupt/recovery, and bounded-delegation checks. Exit code `0` means every check passed, `1` means failure, and `2` means the dedicated keyring session is absent because browser login was not requested.
 - `npm run project:check` validates canonical planning owners, active work, profile, release state, skills, and links.
 - `npm audit` checks the current npm dependency graph; evaluate and resolve findings rather than bypassing them.
 

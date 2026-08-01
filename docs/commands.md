@@ -30,10 +30,11 @@ npm audit
 
 ```bash
 npm run codex:auth-smoke -- --help
+npm run codex:auth-smoke
 npm run codex:auth-smoke -- --login
 ```
 
-The second command may open the system browser and run the fixed public-fixture Sol Ultra turn. It never accepts API tokens, prompts, or custom fixture content.
+The normal command reuses the dedicated keyring session. Add `--login` only when opting into the browser flow; both paths run the same fixed public-fixture Sol Ultra proof and never accept API tokens, prompts, or custom fixture content.
 
 ## Package And Release
 

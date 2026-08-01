@@ -22,6 +22,10 @@ const scenarios = new Set([
   "mismatched-terminal",
   "conflicting-terminal-item",
   "missing-final",
+  "commentary-before-final",
+  "unphased-before-final",
+  "missing-message-phase",
+  "invalid-message-phase",
   "notification-flood",
   "rate-limit",
   "auth-error",
@@ -32,6 +36,11 @@ const scenarios = new Set([
   "required-tool-malformed",
   "pre-response-ordered",
   "item-before-turn-started",
+  "completion-without-start",
+  "dangling-item-start",
+  "duplicate-item-start",
+  "item-lifecycle-mismatch",
+  "mcp-lifecycle-arguments-mismatch",
   "terminal-before-turn-started",
   "post-terminal-item",
   "slow-stop",
@@ -41,6 +50,9 @@ const scenarios = new Set([
   "secret-duplicate-item",
   "secret-mcp-status",
   "bounded-delegation-success",
+  "v2-delegation-success",
+  "foreign-child-lifecycle",
+  "foreign-child-delayed-terminal",
   "delegation-over-limit",
   "delegation-wrong-model",
   "delegation-unknown-receiver",
@@ -225,7 +237,7 @@ function startTurn(requestId, { threadId, turnId }) {
     writeNotification("turn/started", { threadId, turn: inProgress });
     writeNotification("turn/completed", {
       threadId,
-      turn: makeTurn(turnId, "completed", [item]),
+      turn: makeTurn(turnId, "completed", []),
     });
     return;
   }
@@ -341,13 +353,10 @@ function startTurn(requestId, { threadId, turnId }) {
       })]);
       return;
     case "mismatched-terminal":
-      writeNotification(
-        "item/completed",
-        itemNotification(threadId, turnId, makeAgentMessage(1)),
-      );
+      writeItemLifecycle(threadId, turnId, makeAgentMessage(1));
       writeNotification("turn/completed", {
         threadId: "fixture-thread-other",
-        turn: makeTurn(turnId, "completed", [makeAgentMessage(1)]),
+        turn: makeTurn(turnId, "completed", []),
       });
       return;
     case "conflicting-terminal-item": {
@@ -361,10 +370,7 @@ function startTurn(requestId, { threadId, turnId }) {
           detail: "This conflicting fixture must never be accepted.",
         }],
       }));
-      writeNotification(
-        "item/completed",
-        itemNotification(threadId, turnId, completed),
-      );
+      writeItemLifecycle(threadId, turnId, completed);
       writeNotification("turn/completed", {
         threadId,
         turn: makeTurn(turnId, "completed", [changed]),
@@ -374,6 +380,24 @@ function startTurn(requestId, { threadId, turnId }) {
     case "missing-final":
       completeSuccessfully(threadId, turnId, 0);
       return;
+    case "commentary-before-final":
+      completeWithItems(threadId, turnId, [
+        makeAgentMessage(1, "Fixture progress only.", "commentary"),
+        makeAgentMessage(2),
+      ]);
+      return;
+    case "unphased-before-final":
+      completeWithItems(threadId, turnId, [
+        { ...makeAgentMessage(1, "Fixture legacy progress only."), phase: null },
+        makeAgentMessage(2),
+      ]);
+      return;
+    case "missing-message-phase":
+      completeWithItems(threadId, turnId, [{ ...makeAgentMessage(1), phase: null }]);
+      return;
+    case "invalid-message-phase":
+      completeWithItems(threadId, turnId, [makeAgentMessage(1, undefined, "future_phase")]);
+      return;
     case "required-tool-success":
       completeWithRequiredMcp(threadId, turnId, "completed");
       return;
@@ -382,7 +406,56 @@ function startTurn(requestId, { threadId, turnId }) {
       return;
     case "required-tool-malformed": {
       const malformed = { ...makeRequiredMcp("completed"), result: null };
-      writeNotification("item/completed", itemNotification(threadId, turnId, malformed));
+      writeItemLifecycle(threadId, turnId, malformed);
+      return;
+    }
+    case "completion-without-start":
+      writeNotification(
+        "item/completed",
+        itemNotification(threadId, turnId, makeAgentMessage(1)),
+      );
+      return;
+    case "dangling-item-start":
+      writeNotification(
+        "item/started",
+        itemNotification(threadId, turnId, makeStartedItem(makeAgentMessage(1))),
+      );
+      writeNotification("turn/completed", {
+        threadId,
+        turn: makeTurn(turnId, "completed", []),
+      });
+      return;
+    case "duplicate-item-start": {
+      const started = makeStartedItem(makeAgentMessage(1));
+      writeNotification("item/started", itemNotification(threadId, turnId, started));
+      writeNotification("item/started", itemNotification(threadId, turnId, started));
+      return;
+    }
+    case "item-lifecycle-mismatch": {
+      const message = makeAgentMessage(1);
+      writeNotification(
+        "item/started",
+        itemNotification(threadId, turnId, makeStartedItem(message)),
+      );
+      writeNotification(
+        "item/completed",
+        itemNotification(threadId, turnId, {
+          id: message.id,
+          type: "reasoning",
+          summary: [],
+          content: [],
+        }),
+      );
+      return;
+    }
+    case "mcp-lifecycle-arguments-mismatch": {
+      const completed = makeRequiredMcp("completed");
+      const started = makeStartedItem({
+        ...completed,
+        arguments: { fixtureId: "public-event-changed" },
+      });
+      writeNotification("item/started", itemNotification(threadId, turnId, started));
+      writeNotification("item/completed", itemNotification(threadId, turnId, completed));
       return;
     }
     case "post-terminal-item":
@@ -405,8 +478,8 @@ function startTurn(requestId, { threadId, turnId }) {
         arguments: { fixtureId: "public-event-changed" },
       };
       const agentMessage = makeAgentMessage(1);
-      writeNotification("item/completed", itemNotification(threadId, turnId, completed));
-      writeNotification("item/completed", itemNotification(threadId, turnId, agentMessage));
+      writeItemLifecycle(threadId, turnId, completed);
+      writeItemLifecycle(threadId, turnId, agentMessage);
       writeNotification("turn/completed", {
         threadId,
         turn: makeTurn(turnId, "completed", [changed, agentMessage]),
@@ -444,18 +517,15 @@ function startTurn(requestId, { threadId, turnId }) {
         summary: [],
         content: [],
       };
-      writeNotification("item/completed", itemNotification(threadId, turnId, item));
+      writeItemLifecycle(threadId, turnId, item);
       writeNotification("item/completed", itemNotification(threadId, turnId, item));
       return;
     }
     case "secret-mcp-status":
-      writeNotification(
-        "item/completed",
-        itemNotification(threadId, turnId, {
-          ...makeRequiredMcp("completed"),
-          status: "sk-secret-status-never-report",
-        }),
-      );
+      writeItemLifecycle(threadId, turnId, {
+        ...makeRequiredMcp("completed"),
+        status: "sk-secret-status-never-report",
+      });
       return;
     case "bounded-delegation-success":
       completeWithItems(threadId, turnId, [
@@ -464,33 +534,91 @@ function startTurn(requestId, { threadId, turnId }) {
         makeAgentMessage(1),
       ]);
       return;
-    case "delegation-over-limit":
-      for (const sequence of [1, 2, 3]) {
-        const item = makeSpawnItem(`fixture-agent-${sequence}`, null, null, sequence);
-        writeNotification("item/completed", itemNotification(threadId, turnId, item));
-      }
-      return;
-    case "delegation-wrong-model":
-      writeNotification(
-        "item/completed",
-        itemNotification(threadId, turnId, makeSpawnItem("fixture-agent-1", "gpt-other", "ultra")),
-      );
-      return;
-    case "delegation-unknown-receiver":
-      writeNotification(
-        "item/completed",
-        itemNotification(threadId, turnId, {
-          id: "fixture-send-input",
+    case "v2-delegation-success":
+      completeWithItems(threadId, turnId, [
+        makeSubAgentActivity("fixture-agent-1"),
+        {
+          id: "fixture-v2-wait",
           type: "collabAgentToolCall",
-          tool: "sendInput",
+          tool: "wait",
           status: "completed",
           senderThreadId: threadId,
-          receiverThreadIds: ["fixture-unknown-agent"],
+          receiverThreadIds: [],
           agentsStates: {},
           model: null,
           reasoningEffort: null,
-        }),
+        },
+        makeAgentMessage(1),
+      ]);
+      return;
+    case "foreign-child-lifecycle": {
+      const childThreadId = "fixture-child-thread";
+      const childTurnId = "fixture-child-turn";
+      writeNotification("turn/started", {
+        threadId: childThreadId,
+        turn: makeTurn(childTurnId, "inProgress", []),
+      });
+      writeItemLifecycle(childThreadId, childTurnId, {
+        ...makeAgentMessage(91, "DELEGATE_OK"),
+        id: "fixture-child-final",
+      });
+      writeNotification("turn/completed", {
+        threadId: childThreadId,
+        turn: makeTurn(childTurnId, "completed", []),
+      });
+      completeSuccessfully(threadId, turnId);
+      return;
+    }
+    case "foreign-child-delayed-terminal": {
+      const childThreadId = "fixture-child-thread";
+      const childTurnId = "fixture-child-turn";
+      writeNotification("turn/started", {
+        threadId: childThreadId,
+        turn: makeTurn(childTurnId, "inProgress", []),
+      });
+      completeSuccessfully(threadId, turnId);
+      setTimeout(() => {
+        writeItemLifecycle(childThreadId, childTurnId, {
+          ...makeAgentMessage(91, "DELEGATE_OK"),
+          id: "fixture-child-final",
+        });
+        writeNotification("turn/completed", {
+          threadId: childThreadId,
+          turn: makeTurn(childTurnId, "completed", []),
+        });
+      }, 30);
+      return;
+    }
+    case "delegation-over-limit":
+      for (const sequence of [1, 2, 3]) {
+        const item = makeSpawnItem(
+          `fixture-agent-${sequence}`,
+          "gpt-5.6-sol",
+          "ultra",
+          sequence,
+        );
+        writeItemLifecycle(threadId, turnId, item);
+      }
+      return;
+    case "delegation-wrong-model":
+      writeItemLifecycle(
+        threadId,
+        turnId,
+        makeSpawnItem("fixture-agent-1", "gpt-other", "ultra"),
       );
+      return;
+    case "delegation-unknown-receiver":
+      writeItemLifecycle(threadId, turnId, {
+        id: "fixture-send-input",
+        type: "collabAgentToolCall",
+        tool: "sendInput",
+        status: "completed",
+        senderThreadId: threadId,
+        receiverThreadIds: ["fixture-unknown-agent"],
+        agentsStates: {},
+        model: null,
+        reasoningEffort: null,
+      });
       return;
     case "rate-limit":
       completeWithError(
@@ -538,15 +666,12 @@ function completeSuccessfully(threadId, turnId, messageCount = 1, messageTexts =
   );
 
   for (const item of items) {
-    writeNotification(
-      "item/completed",
-      itemNotification(threadId, turnId, item),
-    );
+    writeItemLifecycle(threadId, turnId, item);
   }
 
   writeNotification("turn/completed", {
     threadId,
-    turn: makeTurn(turnId, "completed", items),
+    turn: makeTurn(turnId, "completed", []),
   });
 }
 
@@ -586,25 +711,62 @@ function makeRequiredMcp(status) {
 
 function completeWithItems(threadId, turnId, items) {
   for (const item of items) {
-    writeNotification(
-      "item/completed",
-      itemNotification(threadId, turnId, item),
-    );
+    writeItemLifecycle(threadId, turnId, item);
   }
   writeNotification("turn/completed", {
     threadId,
-    turn: makeTurn(turnId, "completed", items),
+    turn: makeTurn(turnId, "completed", []),
   });
 }
 
 function completeWithConflictingMcp(threadId, turnId, completed, changed) {
   const agentMessage = makeAgentMessage(1);
-  writeNotification("item/completed", itemNotification(threadId, turnId, completed));
-  writeNotification("item/completed", itemNotification(threadId, turnId, agentMessage));
+  writeItemLifecycle(threadId, turnId, completed);
+  writeItemLifecycle(threadId, turnId, agentMessage);
   writeNotification("turn/completed", {
     threadId,
     turn: makeTurn(turnId, "completed", [changed, agentMessage]),
   });
+}
+
+function writeItemLifecycle(threadId, turnId, completedItem) {
+  if (completedItem.type === "subAgentActivity") {
+    writeNotification(
+      "item/completed",
+      itemNotification(threadId, turnId, completedItem),
+    );
+    return;
+  }
+  writeNotification(
+    "item/started",
+    itemNotification(threadId, turnId, makeStartedItem(completedItem)),
+  );
+  writeNotification(
+    "item/completed",
+    itemNotification(threadId, turnId, completedItem),
+  );
+}
+
+function makeStartedItem(item) {
+  if (item.type === "mcpToolCall") {
+    return { ...item, status: "inProgress", result: null };
+  }
+  if (item.type === "collabAgentToolCall") {
+    return item.tool === "spawnAgent"
+      ? {
+          ...item,
+          status: "inProgress",
+          receiverThreadIds: [],
+          agentsStates: {},
+          model: "",
+          reasoningEffort: "medium",
+        }
+      : { ...item, status: "inProgress" };
+  }
+  if (item.type === "agentMessage") {
+    return { ...item, text: "" };
+  }
+  return { ...item };
 }
 
 function makeSpawnItem(receiverThreadId, model, reasoningEffort, sequence = 1) {
@@ -634,10 +796,11 @@ function makeSubAgentActivity(agentThreadId) {
   };
 }
 
-function makeAgentMessage(sequence, text) {
+function makeAgentMessage(sequence, text, phase = "final_answer") {
   return {
     id: `fixture-agent-message-${sequence}`,
     type: "agentMessage",
+    phase,
     text: text ?? JSON.stringify({
       status: "ok",
       summary: "Fixture compatibility contract is intact.",

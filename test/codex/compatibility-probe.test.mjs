@@ -108,6 +108,8 @@ test("effective config validation covers every hardened field and rejects capabi
     (value) => (value.hide_agent_reasoning = false),
     (value) => (value.show_raw_agent_reasoning = true),
     (value) => (value.agents.interrupt_message = false),
+    (value) => (value.features.default_mode_request_user_input = true),
+    (value) => delete value.features.default_mode_request_user_input,
     (value) => (value.features.unreviewed_capability = true),
     (value) => (value.features.unreviewed_capability = "disabled"),
     (value) => (value.features.mentions_v2 = "true"),
@@ -121,6 +123,7 @@ test("effective config validation covers every hardened field and rejects capabi
     (value) => (value.mcp_servers.marketpilot_fixture.env_vars = []),
     (value) => (value.mcp_servers.marketpilot_fixture.startup_timeout_sec = 6),
     (value) => (value.mcp_servers.marketpilot_fixture.tool_timeout_sec = 6),
+    (value) => (value.mcp_servers.marketpilot_fixture.default_tools_approval_mode = "prompt"),
     (value) => value.mcp_servers.marketpilot_fixture.disabled_tools.push("research_read"),
     (value) => (value.mcp_servers.marketpilot_fixture.unreviewed = false),
   ];
@@ -141,6 +144,12 @@ test("MCP inventory validation proves the exact public read contract", () => {
     tools: {
       research_read: {
         name: "research_read",
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
         inputSchema: {
           type: "object",
           properties: {
@@ -161,6 +170,8 @@ test("MCP inventory validation proves the exact public read contract", () => {
     (value) => value[0].resources.push({ uri: "file:///private" }),
     (value) => (value[0].tools.research_read = null),
     (value) => (value[0].tools.research_read.name = "dangerous_mutation"),
+    (value) => (value[0].tools.research_read.annotations.readOnlyHint = false),
+    (value) => delete value[0].tools.research_read.annotations.openWorldHint,
     (value) => (value[0].tools.research_read.inputSchema.additionalProperties = true),
     (value) => (value[0].tools.research_read.inputSchema.properties.fixtureId.const = "other"),
     (value) => (value[0].tools.research_read.inputSchema.properties.extra = { type: "string" }),
@@ -242,6 +253,7 @@ function effectiveConfigFixture({ cwd, command, fixturePath }) {
     "browser_use_full_cdp_access",
     "code_mode_host",
     "computer_use",
+    "default_mode_request_user_input",
     "fast_mode",
     "goals",
     "guardian_approval",
@@ -313,6 +325,7 @@ function effectiveConfigFixture({ cwd, command, fixturePath }) {
         required: true,
         startup_timeout_sec: 5,
         tool_timeout_sec: 5,
+        default_tools_approval_mode: "approve",
         enabled_tools: ["research_read"],
         disabled_tools: [],
       },

@@ -49,6 +49,7 @@ export async function runAuthenticatedSmokeCli({
       projectRoot,
       login: parsed.login,
       requestTimeoutMs: parsed.requestTimeoutMs,
+      turnTimeoutMs: parsed.turnTimeoutMs,
       loginTimeoutMs: parsed.loginTimeoutMs,
       sourceEnv,
       signal,
@@ -121,12 +122,12 @@ function safeCode(error, fallback) {
 
 function helpText() {
   return [
-    "Usage: node scripts/codex-authenticated-smoke.mjs [--login] [--timeout-ms N] [--login-timeout-ms N]",
+    "Usage: node scripts/codex-authenticated-smoke.mjs [--login] [--timeout-ms N] [--turn-timeout-ms N] [--login-timeout-ms N]",
     "",
     "Runs the opt-in WI-001 browser/keyring and public-fixture structured-turn smoke.",
     "--login is the only operation that may open a browser. API tokens, custom",
     "prompts, and non-public fixture input are never accepted. Output is a",
-    "redacted JSON checklist; unresolved manual checks remain incomplete.",
+    "redacted JSON checklist; a signed-out run remains incomplete unless --login is supplied.",
     "",
   ].join("\n");
 }

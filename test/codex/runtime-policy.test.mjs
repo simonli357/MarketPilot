@@ -23,6 +23,7 @@ import {
   resolvePackagedCodexInstallation,
   sha256,
   sha256File,
+  validateRequestUserInputDisabledLayers,
 } from "../../src/codex/runtime-policy.mjs";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "..", "..");
@@ -133,6 +134,12 @@ test("renders an exact hardened Sol Ultra config with one read-only MCP", async 
   assert.match(config, /max_concurrent_threads_per_session = 2/u);
   assert.match(config, /shell_tool = false/u);
   assert.match(config, /browser_use = false/u);
+  assert.match(config, /default_mode_request_user_input = false/u);
+  assert.match(
+    config,
+    /\[tools\.experimental_request_user_input\]\nenabled = false/u,
+  );
+  assert.match(config, /default_tools_approval_mode = "approve"/u);
   assert.match(config, /hooks = false/u);
   assert.match(config, /goals = false/u);
   assert.match(config, /memories = false/u);
@@ -167,6 +174,58 @@ test("renders an exact hardened Sol Ultra config with one read-only MCP", async 
   );
   assert.equal(count(config, "enabled = true"), 3);
   assert.equal(count(config, "[[skills.config]]"), BUNDLED_SYSTEM_SKILL_NAMES.length + 2);
+});
+
+test("validates the request-input registration kill switch from the isolated user layer", () => {
+  const configPath = "/private/codex-home/config.toml";
+  const layer = {
+    name: { type: "user", file: configPath, profile: null },
+    version: "fixture",
+    config: { tools: { experimental_request_user_input: { enabled: false } } },
+  };
+
+  assert.equal(validateRequestUserInputDisabledLayers([layer], configPath), true);
+
+  for (const mutate of [
+    (layers) => (layers[0].config.tools.experimental_request_user_input.enabled = true),
+    (layers) => delete layers[0].config.tools.experimental_request_user_input,
+    (layers) => (layers[0].name.file = "/other/config.toml"),
+    (layers) => (layers[0].name.type = "project"),
+    (layers) => (layers[0].name.profile = "unsafe-profile"),
+    (layers) => layers.push(structuredClone(layers[0])),
+  ]) {
+    const candidate = structuredClone([layer]);
+    mutate(candidate);
+    assert.equal(validateRequestUserInputDisabledLayers(candidate, configPath), false);
+  }
+
+  assert.equal(
+    validateRequestUserInputDisabledLayers([
+      layer,
+      {
+        name: { type: "system", file: "/etc/codex/config.toml" },
+        version: "fixture",
+        config: { tools: { experimental_request_user_input: { enabled: true } } },
+        disabledReason: "disabled by fixture",
+      },
+    ], configPath),
+    true,
+  );
+
+  for (const disabledReason of [false, 0, {}, "", "invalid\nreason"]) {
+    assert.equal(
+      validateRequestUserInputDisabledLayers([
+        layer,
+        {
+          name: { type: "system", file: "/etc/codex/config.toml" },
+          version: "fixture",
+          config: { tools: { experimental_request_user_input: { enabled: true } } },
+          disabledReason,
+        },
+      ], configPath),
+      false,
+    );
+  }
 });
 
 test("rejects relative executable and skill paths in hardened config", async (t) => {

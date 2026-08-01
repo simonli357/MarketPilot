@@ -23,11 +23,23 @@ const tools = [
       required: ["fixtureId"],
       additionalProperties: false,
     },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: "dangerous_mutation",
     description: "A forbidden fixture tool used only to verify enabled_tools filtering.",
     inputSchema: { type: "object", additionalProperties: false },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
 ];
 

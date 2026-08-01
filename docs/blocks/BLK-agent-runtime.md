@@ -57,7 +57,7 @@ Codex-owned persistence is treated as a separate security boundary. DEC-001 sele
 
 1. Implement WI-001 in Node 22 ESM with built-in `node:test`, pinning `@openai/codex` exactly to `0.145.0` and using its packaged binary rather than the system binary.
 2. Add a small process/protocol client, hardened runtime-policy builder, fake app-server, fixture MCP, compatibility CLI, and redacted report. Generate/record the stable protocol schema and dependency hashes reproducibly.
-3. Automate process, protocol, config, model, skill, MCP, isolation, output, timeout, crash, and storage-inventory checks; keep ChatGPT/keyring, entitlement, real turn/resume/interrupt, and Ultra activity as explicit opt-in manual smoke.
+3. Automate process, protocol, config, model, skill, MCP, isolation, output, timeout, crash, storage inventory, authenticated turn/resume/interrupt, and bounded Ultra activity checks; keep only initial browser/keyring login as an explicit operator action.
 4. Enforce DEC-001's memory-backed runtime and encrypted-swap/non-swappable preflight before WI-004 handles anything beyond public fixtures; store only versioned bounded logical memory in SQLCipher.
 5. Build WI-004 with app-owned manager/research/critic/reflection skills and a fixture-only MCP. Connect typed artifacts to a minimal deterministic gate and simulator without any broker method.
 6. After L1 proof, graduate stable checks into normal validation and keep the app-server adapter replaceable. Any failure of stable isolation/auth/structured-output requirements triggers architecture replanning rather than experimental or SDK fallback.
@@ -87,13 +87,13 @@ Codex-owned persistence is treated as a separate security boundary. DEC-001 sele
 | --- | --- | --- | --- |
 | Pinned stable protocol is usable | Fake and real process contract tests; generated-schema/hash check | Ubuntu 24.04 x64, Codex 0.145.0 | WI-001 concise report and normal test results |
 | Isolation and least privilege | Config/skill/MCP/env inventories, forbidden-request tests, file-mode inspection | Fresh temporary app homes | WI-001 security output with secrets redacted |
-| ChatGPT and Sol Ultra work | User-driven keyring login, entitlement, structured turn, resume, interrupt, deliberate delegation smoke | Fresh dedicated app home | Manual WI-001 checklist |
+| ChatGPT and Sol Ultra work | User-driven keyring login followed by automated entitlement, structured turn, fresh-process resume, interrupt/recovery, and bounded delegation proof | Stable dedicated app home with public fixtures only | Redacted WI-001 authenticated report |
 | Failure is safe | Auth/rate-limit/reroute/timeout/crash/malformed/unknown-capability scenarios | Fake server plus opt-in real smoke | Typed outcomes and no-exposure assertions |
 | L1 product boundary works | Thirty fixture cases, restart/idempotency suite, manual walkthrough, two-hour soak | Headless reference host | WI-004 evidence |
 
 ## Known Gaps
 
-- Credential-free app-server compatibility is proven for the pinned Ubuntu 24.04 x64 package; authenticated account, live-turn, recovery, interrupt, and delegation behavior remain unproven until the owner completes WI-001's opt-in smoke.
+- The pinned Ubuntu 24.04 x64 package has passed credential-free compatibility and authenticated public-fixture turn, recovery, interrupt, and bounded-delegation proof. Keyring availability and hosted-model capacity remain external readiness dependencies and must fail closed when absent.
 - Controlled same-process restart, process-group cleanup, and process-local duplicate-acceptance fencing are implemented and tested. This does not provide durable containment for descendants that deliberately call `setsid()`, for a supervisor killed with `SIGKILL`, or for idempotency across an application restart.
 - The authenticated-smoke runtime is exclusively leased, but an ungraceful supervisor death can leave a fail-closed stale lease. Safe automatic reclamation requires a stronger owner such as a surviving launcher or service/cgroup boundary; until then, recovery ends the user runtime/session or reboots rather than unlinking the lease.
 - DEC-001 resolves the persistence design, but the current host has unencrypted swap and the runtime preflight is not implemented; no licensed, broker, account, or real portfolio context may enter Codex until both are corrected and verified.

@@ -98,6 +98,10 @@ export function isStructuredTurnClientQuarantined(client) {
  *   isError: boolean,
  *   item: Readonly<Record<string, unknown>>
  * }>) => boolean | void} [options.validateMcpCompletion] Synchronous, per-completed-call validator.
+ * @param {(notification: Readonly<{method: string, params: Readonly<Record<string, unknown>>}>) => boolean | void} [options.validateForeignTurnNotification] Synchronous validator for multiplexed non-primary turn lifecycle.
+ * @param {() => Promise<void>} [options.awaitAdditionalEvidence] Arms an
+ * asynchronous acceptance gate before turn/start. The gate must settle before
+ * the owned connection is stopped and shares this turn's absolute deadline.
  * @returns {Promise<Readonly<{
  *   threadId: string,
  *   turnId: string,
@@ -117,6 +121,8 @@ export async function runStructuredTurn({
   allowedMcpTools = new Set(),
   requiredMcpTools = new Set(),
   validateMcpCompletion,
+  validateForeignTurnNotification,
+  awaitAdditionalEvidence,
 }) {
   assertClient(client);
   requireNonEmptyText(threadId, "threadId");
@@ -131,6 +137,18 @@ export async function runStructuredTurn({
   }
   if (validateMcpCompletion !== undefined && typeof validateMcpCompletion !== "function") {
     throw new TypeError("validateMcpCompletion must be a function");
+  }
+  if (
+    validateForeignTurnNotification !== undefined &&
+    typeof validateForeignTurnNotification !== "function"
+  ) {
+    throw new TypeError("validateForeignTurnNotification must be a function");
+  }
+  if (
+    awaitAdditionalEvidence !== undefined &&
+    typeof awaitAdditionalEvidence !== "function"
+  ) {
+    throw new TypeError("awaitAdditionalEvidence must be a function");
   }
   const allowedMcpToolSet = snapshotToolSet(allowedMcpTools, "allowedMcpTools");
   const requiredMcpToolSet = snapshotToolSet(requiredMcpTools, "requiredMcpTools");
@@ -183,6 +201,46 @@ export async function runStructuredTurn({
   ACTIVE_TURN_CLIENTS.add(client);
   const deadlineAt = performance.now() + deadlineMs;
 
+  /** @type {Promise<void> | null} */
+  let additionalEvidencePromise = null;
+  try {
+    if (awaitAdditionalEvidence !== undefined) {
+      let evidence;
+      try {
+        evidence = awaitAdditionalEvidence();
+        if (!isThenable(evidence)) {
+          throw new TypeError("awaitAdditionalEvidence must return a promise");
+        }
+        additionalEvidencePromise = Promise.resolve(evidence).then(
+          () => undefined,
+          () => {
+            throw new StructuredTurnError(
+              "ADDITIONAL_EVIDENCE_REJECTED",
+              "Additional structured-turn acceptance evidence failed local validation",
+              { kind: "protocol" },
+            );
+          },
+        );
+        void additionalEvidencePromise.catch(() => {});
+      } catch {
+        throw new StructuredTurnError(
+          "ADDITIONAL_EVIDENCE_REJECTED",
+          "Additional structured-turn acceptance evidence failed local validation",
+          { kind: "protocol" },
+        );
+      }
+    }
+    assertBeforeDeadline(deadlineAt, deadlineMs);
+    if (signal?.aborted) {
+      throw new StructuredTurnError("TURN_ABORTED", "Structured turn was aborted before start", {
+        kind: "aborted",
+      });
+    }
+  } catch (error) {
+    ACTIVE_TURN_CLIENTS.delete(client);
+    throw error;
+  }
+
   /** @type {string | null} */
   let turnId = null;
   /** @type {Readonly<Record<string, unknown>> | null} */
@@ -190,12 +248,17 @@ export async function runStructuredTurn({
   /** @type {Readonly<Record<string, unknown>>[]} */
   const bufferedTurnNotifications = [];
   /** @type {Set<string>} */
-  const completedItemIds = new Set();
+  const startedItemIds = new Set();
   /** @type {Map<string, string>} */
-  const completedItemSignatures = new Map();
+  const activeStartedItems = new Map();
+  /** @type {Set<string>} */
+  const completedItemIds = new Set();
+  /** @type {{id: string, text: string, phase: "commentary" | "final_answer" | "unknown"}[]} */
+  const completedAgentMessages = [];
   const successfulRequiredMcpTools = new Set();
   const failedRequiredMcpTools = new Set();
   const delegatedAgentIds = new Set();
+  const v2StartedAgentIds = new Set();
   let notificationCount = 0;
   let bufferedNotificationBytes = 0;
   /** @type {"awaitingTurnStarted" | "active" | "terminal"} */
@@ -224,12 +287,23 @@ export async function runStructuredTurn({
   void terminalPromise.catch(() => {});
   const failureOnly = terminalPromise.then(() => new Promise(() => {}));
   void failureOnly.catch(() => {});
+  /** @type {(reason?: unknown) => void} */
+  let rejectLateFailure;
+  const lateFailurePromise = new Promise((_, reject) => {
+    rejectLateFailure = reject;
+  });
+  void lateFailurePromise.catch(() => {});
+  let lateFailureSignaled = false;
 
   /** @param {unknown} error */
   const fail = (error) => {
     const failure = normalizeFailure(error);
     if (gateSettled) {
       lateFailure ??= failure;
+      if (!lateFailureSignaled) {
+        lateFailureSignaled = true;
+        rejectLateFailure(failure);
+      }
       return;
     }
     gateSettled = true;
@@ -237,6 +311,12 @@ export async function runStructuredTurn({
     rejectTerminal(failure);
     requestAbort.abort(failure);
   };
+
+  if (additionalEvidencePromise !== null) {
+    // Arm the observer before turn/start and route early rejection through the
+    // same fail-closed channel as transport and lifecycle incidents.
+    void additionalEvidencePromise.catch(fail);
+  }
 
   /** @param {Readonly<Record<string, unknown>>} turn */
   const observeTerminal = (turn) => {
@@ -292,6 +372,21 @@ export async function runStructuredTurn({
       }
       if (!TURN_NOTIFICATION_METHODS.has(notification.method)) return;
       const paramsRecord = requireRecord(notification.params, `${notification.method} params`);
+      if (paramsRecord.threadId !== threadId) {
+        if (validateForeignTurnNotification === undefined) {
+          throw new StructuredTurnError(
+            "THREAD_ID_MISMATCH",
+            "Turn notification did not match the primary structured thread",
+            { kind: "protocol" },
+          );
+        }
+        applyForeignTurnNotificationValidator(
+          notification.method,
+          paramsRecord,
+          validateForeignTurnNotification,
+        );
+        return;
+      }
       if (turnId === null) {
         // Responses and notifications share one JSONL stream, but the server
         // may emit an ordered turn/started -> item -> terminal sequence before
@@ -370,13 +465,33 @@ export async function runStructuredTurn({
         );
       }
       const item = requireRecord(paramsRecord.item, `${method} item`);
+      const itemId = requireNonEmptyText(item.id, `${method} item id`);
+      if (method === "item/started" && startedItemIds.has(itemId)) {
+        throw new StructuredTurnError(
+          "DUPLICATE_ITEM_STARTED",
+          "App-server started the same item more than once",
+          { kind: "protocol", details: { itemIdSha256: sha256Text(itemId) } },
+        );
+      }
       validateItem(item, allowedMcpToolSet, {
         primaryThreadId: threadId,
         delegatedAgentIds,
+        v2StartedAgentIds,
         completed: method === "item/completed",
       });
+      if (method === "item/started") {
+        startedItemIds.add(itemId);
+        if (startedItemIds.size > MAX_COMPLETED_ITEMS) {
+          throw new StructuredTurnError(
+            "ITEM_LIMIT_EXCEEDED",
+            "App-server exceeded the structured-turn item limit",
+            { kind: "protocol", details: { maxItems: MAX_COMPLETED_ITEMS } },
+          );
+        }
+        activeStartedItems.set(itemId, itemLifecycleSignature(item));
+        return;
+      }
       if (method === "item/completed") {
-        const itemId = requireNonEmptyText(item.id, "completed item id");
         if (completedItemIds.has(itemId)) {
           throw new StructuredTurnError(
             "DUPLICATE_ITEM",
@@ -384,8 +499,31 @@ export async function runStructuredTurn({
             { kind: "protocol", details: { itemIdSha256: sha256Text(itemId) } },
           );
         }
+        const startedSignature = activeStartedItems.get(itemId);
+        // Pinned MultiAgent V2 emits subAgentActivity through the atomic
+        // completion-only helper. Every other stable item follows the
+        // documented started -> completed lifecycle.
+        const atomicSubAgentActivity =
+          startedSignature === undefined && item.type === "subAgentActivity";
+        if (startedSignature === undefined && !atomicSubAgentActivity) {
+          throw new StructuredTurnError(
+            "ITEM_STARTED_MISSING",
+            "App-server completed an item without its matching item/started notification",
+            { kind: "protocol", details: { itemIdSha256: sha256Text(itemId) } },
+          );
+        }
+        if (
+          startedSignature !== undefined &&
+          startedSignature !== itemLifecycleSignature(item)
+        ) {
+          throw new StructuredTurnError(
+            "ITEM_LIFECYCLE_MISMATCH",
+            "App-server changed an item's stable identity between start and completion",
+            { kind: "protocol", details: { itemIdSha256: sha256Text(itemId) } },
+          );
+        }
+        if (!atomicSubAgentActivity) activeStartedItems.delete(itemId);
         completedItemIds.add(itemId);
-        completedItemSignatures.set(itemId, itemSafetySignature(item));
         if (completedItemIds.size > MAX_COMPLETED_ITEMS) {
           throw new StructuredTurnError(
             "ITEM_LIMIT_EXCEEDED",
@@ -402,6 +540,12 @@ export async function runStructuredTurn({
             successfulRequiredMcpTools,
             failedRequiredMcpTools,
           );
+        } else if (item.type === "agentMessage") {
+          completedAgentMessages.push({
+            id: itemId,
+            text: requireNonEmptyText(item.text, "completed agent message text"),
+            phase: requireAgentMessagePhase(item.phase),
+          });
         }
       }
       return;
@@ -430,6 +574,13 @@ export async function runStructuredTurn({
       }
       const turn = requireRecord(paramsRecord.turn, "turn/completed turn");
       assertTurnId(turn, /** @type {string} */ (turnId), "turn/completed");
+      if (activeStartedItems.size !== 0) {
+        throw new StructuredTurnError(
+          "ITEM_COMPLETED_MISSING",
+          "App-server ended a turn with unfinished item lifecycles",
+          { kind: "protocol", details: { unfinishedItemCount: activeStartedItems.size } },
+        );
+      }
       lifecycleState = "terminal";
       observeTerminal(turn);
     }
@@ -514,11 +665,7 @@ export async function runStructuredTurn({
 
     const final = extractUnambiguousFinal(
       completedTurn,
-      completedItemIds,
-      completedItemSignatures,
-      allowedMcpToolSet,
-      threadId,
-      delegatedAgentIds,
+      completedAgentMessages,
     );
     assertRequiredMcpToolsCompleted(
       requiredMcpToolSet,
@@ -547,6 +694,12 @@ export async function runStructuredTurn({
         "Artifact parser returned undefined",
         { kind: "schema" },
       );
+    }
+
+    if (additionalEvidencePromise !== null) {
+      await Promise.race([additionalEvidencePromise, lateFailurePromise]);
+      assertBeforeDeadline(deadlineAt, deadlineMs);
+      if (lateFailure !== null) throw lateFailure;
     }
 
     // Acceptance owns one physical connection. Keep every protocol listener
@@ -664,19 +817,11 @@ function validateTerminalStatus(turn) {
 
 /**
  * @param {Readonly<Record<string, unknown>>} turn
- * @param {ReadonlySet<string>} completedItemIds
- * @param {ReadonlyMap<string, string>} completedItemSignatures
- * @param {ReadonlySet<string>} allowedMcpTools
- * @param {string} primaryThreadId
- * @param {Set<string>} delegatedAgentIds
+ * @param {readonly {id: string, text: string, phase: "commentary" | "final_answer" | "unknown"}[]} completedAgentMessages
  */
 function extractUnambiguousFinal(
   turn,
-  completedItemIds,
-  completedItemSignatures,
-  allowedMcpTools,
-  primaryThreadId,
-  delegatedAgentIds,
+  completedAgentMessages,
 ) {
   if (!Array.isArray(turn.items)) {
     throw new StructuredTurnError(
@@ -685,122 +830,44 @@ function extractUnambiguousFinal(
       { kind: "protocol" },
     );
   }
-  if (turn.items.length > MAX_COMPLETED_ITEMS) {
+  if (turn.items.length !== 0) {
     throw new StructuredTurnError(
-      "ITEM_LIMIT_EXCEEDED",
-      "Terminal turn exceeded the structured-turn item limit",
-      { kind: "protocol", details: { maxItems: MAX_COMPLETED_ITEMS } },
+      "TERMINAL_ITEMS_NOT_EMPTY",
+      "Pinned app-server terminal turns must use the documented empty item snapshot",
+      { kind: "protocol", details: { terminalItemCount: turn.items.length } },
     );
   }
-  /** @type {{id: string, text: string}[]} */
-  const messages = [];
-  const terminalIds = new Set();
-  for (const rawItem of turn.items) {
-    const item = requireRecord(rawItem, "terminal item");
-    validateItem(item, allowedMcpTools, {
-      primaryThreadId,
-      delegatedAgentIds,
-      completed: true,
-      terminalReplay: true,
-    });
-    const id = requireNonEmptyText(item.id, "terminal item id");
-    if (terminalIds.has(id)) {
-      throw new StructuredTurnError(
-        "DUPLICATE_ITEM",
-        "Terminal turn repeated an item identifier",
-        { kind: "protocol", details: { itemIdSha256: sha256Text(id) } },
-      );
-    }
-    terminalIds.add(id);
-    if (!completedItemIds.has(id)) {
-      throw new StructuredTurnError(
-        "ITEM_COMPLETION_MISSING",
-        "Terminal turn referenced an item without item/completed",
-        { kind: "protocol", details: { itemIdSha256: sha256Text(id) } },
-      );
-    }
-    if (completedItemSignatures.get(id) !== itemSafetySignature(item)) {
-      throw new StructuredTurnError(
-        "TERMINAL_ITEM_MISMATCH",
-        "Terminal turn changed safety-relevant completed item fields",
-        { kind: "protocol", details: { itemIdSha256: sha256Text(id) } },
-      );
-    }
-    if (item.type === "agentMessage") {
-      messages.push({
-        id,
-        text: requireNonEmptyText(item.text, "final agent message text"),
-      });
-    }
-  }
-  for (const id of completedItemIds) {
-    if (!terminalIds.has(id)) {
-      throw new StructuredTurnError(
-        "TERMINAL_ITEM_MISSING",
-        "A completed item was omitted from the terminal turn",
-        { kind: "protocol", details: { itemIdSha256: sha256Text(id) } },
-      );
-    }
-  }
-  if (messages.length !== 1) {
+  const finalMessages = completedAgentMessages.filter(({ phase }) => phase === "final_answer");
+  if (finalMessages.length !== 1) {
     throw new StructuredTurnError(
       "OUTPUT_AMBIGUOUS",
-      "Terminal turn must contain exactly one final agent message",
-      { kind: "schema", details: { agentMessageCount: messages.length } },
+      "The canonical completed-item stream must contain exactly one final-answer message",
+      {
+        kind: "schema",
+        details: {
+          agentMessageCount: completedAgentMessages.length,
+          commentaryCount: completedAgentMessages.filter(({ phase }) => phase === "commentary").length,
+          finalAnswerCount: finalMessages.length,
+          unknownPhaseCount: completedAgentMessages.filter(({ phase }) => phase === "unknown").length,
+        },
+      },
     );
   }
-  return messages[0];
+  return finalMessages[0];
 }
 
-/** @param {Readonly<Record<string, unknown>>} item */
-function itemSafetySignature(item) {
-  let fields;
-  if (item.type === "agentMessage") {
-    fields = {
-      id: item.id,
-      type: item.type,
-      textSha256: sha256Text(typeof item.text === "string" ? item.text : "[invalid]"),
-    };
-  } else if (item.type === "mcpToolCall") {
-    fields = {
-      id: item.id,
-      type: item.type,
-      server: item.server,
-      tool: item.tool,
-      status: item.status,
-      arguments: item.arguments,
-      result: item.result ?? null,
-      isError: deriveMcpIsError(item),
-      error: item.error ?? null,
-      appContext: item.appContext ?? null,
-      pluginId: item.pluginId ?? null,
-      mcpAppResourceUri: item.mcpAppResourceUri ?? null,
-    };
-  } else if (item.type === "collabAgentToolCall") {
-    fields = {
-      id: item.id,
-      type: item.type,
-      tool: item.tool,
-      status: item.status,
-      senderThreadId: item.senderThreadId,
-      receiverThreadIds: item.receiverThreadIds,
-      model: item.model ?? null,
-      reasoningEffort: item.reasoningEffort ?? null,
-      agentsStates: item.agentsStates,
-      prompt: item.prompt ?? null,
-    };
-  } else if (item.type === "subAgentActivity") {
-    fields = {
-      id: item.id,
-      type: item.type,
-      agentThreadId: item.agentThreadId,
-      agentPath: item.agentPath,
-      kind: item.kind,
-    };
-  } else {
-    fields = { id: item.id, type: item.type };
-  }
-  return sha256Text(canonicalJson(fields, "completed item safety fields"));
+/** @param {unknown} value @returns {"commentary" | "final_answer" | "unknown"} */
+function requireAgentMessagePhase(value) {
+  if (value === "commentary" || value === "final_answer") return value;
+  // The pinned stable schema permits null for legacy/provider output. Codex's
+  // own history materializer treats it as non-final, so it can never satisfy
+  // the one explicit final-answer requirement here.
+  if (value === null || value === undefined) return "unknown";
+  throw new StructuredTurnError(
+    "AGENT_MESSAGE_PHASE_INVALID",
+    "Completed agent messages contain an unsupported phase value",
+    { kind: "protocol", details: { phaseSha256: hashUnknownText(value) } },
+  );
 }
 
 /** @param {string} value */
@@ -814,6 +881,7 @@ function sha256Text(value) {
  * @param {{
  *   primaryThreadId: string,
  *   delegatedAgentIds: Set<string>,
+ *   v2StartedAgentIds: Set<string>,
  *   completed: boolean,
  *   terminalReplay?: boolean
  * }} context
@@ -838,6 +906,13 @@ function validateItem(item, allowedMcpTools, context) {
         { kind: "policy", details: { toolSha256: sha256Text(`${server}\0${tool}`) } },
       );
     }
+    if (!context.completed && item.status !== "inProgress") {
+      throw new StructuredTurnError(
+        "MCP_START_STATUS_INVALID",
+        "Started MCP items must report in-progress status",
+        { kind: "protocol", details: { toolSha256: sha256Text(`${server}\0${tool}`) } },
+      );
+    }
     return;
   }
   if (item.type === "collabAgentToolCall") {
@@ -845,8 +920,52 @@ function validateItem(item, allowedMcpTools, context) {
     return;
   }
   if (item.type === "subAgentActivity") {
-    validateSubAgentActivity(item, context.delegatedAgentIds);
+    validateSubAgentActivity(item, context);
   }
+}
+
+/**
+ * Capture only stable, non-content identity fields that must not change across
+ * the documented item/started -> item/completed lifecycle. Mutable status,
+ * output, agent-state, and message fields are deliberately excluded.
+ *
+ * @param {Readonly<Record<string, unknown>>} item
+ */
+function itemLifecycleSignature(item) {
+  if (item.type === "mcpToolCall") {
+    const identity = {
+      type: item.type,
+      server: item.server,
+      tool: item.tool,
+      arguments: item.arguments,
+    };
+    // These invocation-context fields are copied unchanged from the same
+    // pinned core event into both lifecycle projections. Preserve field
+    // presence as well as value so an omitted field cannot be swapped for an
+    // explicit null between item/started and item/completed.
+    for (const field of ["appContext", "mcpAppResourceUri", "pluginId"]) {
+      if (Object.hasOwn(item, field)) Reflect.set(identity, field, Reflect.get(item, field));
+    }
+    return canonicalJson(identity, "MCP lifecycle identity");
+  }
+  if (item.type === "collabAgentToolCall") {
+    const identity = {
+      type: item.type,
+      tool: item.tool,
+      senderThreadId: item.senderThreadId,
+    };
+    if (Object.hasOwn(item, "prompt")) identity.prompt = item.prompt;
+    return canonicalJson(identity, "collaboration lifecycle identity");
+  }
+  if (item.type === "subAgentActivity") {
+    return JSON.stringify([
+      item.type,
+      item.agentThreadId,
+      item.agentPath,
+      item.kind,
+    ]);
+  }
+  return JSON.stringify([item.type]);
 }
 
 /**
@@ -945,6 +1064,43 @@ function applyMcpCompletionValidator(evidence, validator) {
   }
 }
 
+/**
+ * @param {string} method
+ * @param {Readonly<Record<string, unknown>>} params
+ * @param {(notification: Readonly<{method: string, params: Readonly<Record<string, unknown>>}>) => boolean | void} validator
+ */
+function applyForeignTurnNotificationValidator(method, params, validator) {
+  const evidence = Object.freeze({
+    method,
+    params: snapshotJson(params, "foreign turn notification params"),
+  });
+  let accepted;
+  try {
+    accepted = validator(evidence);
+  } catch {
+    throw new StructuredTurnError(
+      "FOREIGN_NOTIFICATION_REJECTED",
+      "Multiplexed non-primary turn notification failed local validation",
+      { kind: "protocol" },
+    );
+  }
+  if (isThenable(accepted)) {
+    void Promise.resolve(accepted).catch(() => {});
+    throw new StructuredTurnError(
+      "FOREIGN_NOTIFICATION_VALIDATOR_ASYNC",
+      "Foreign turn notification validators must return synchronously",
+      { kind: "policy" },
+    );
+  }
+  if (accepted !== undefined && accepted !== true) {
+    throw new StructuredTurnError(
+      "FOREIGN_NOTIFICATION_REJECTED",
+      "Multiplexed non-primary turn notification failed local validation",
+      { kind: "protocol" },
+    );
+  }
+}
+
 /** @param {Readonly<Record<string, unknown>>} item */
 function deriveMcpIsError(item) {
   const result = item.result;
@@ -984,6 +1140,13 @@ function validateCollabAgentItem(item, context) {
       { kind: "protocol" },
     );
   }
+  if (!context.completed && status !== "inProgress") {
+    throw new StructuredTurnError(
+      "COLLAB_START_STATUS_INVALID",
+      "Started collaboration items must report in-progress status",
+      { kind: "protocol" },
+    );
+  }
   const senderThreadId = requireNonEmptyText(item.senderThreadId, "collaboration sender thread id");
   if (senderThreadId !== context.primaryThreadId) {
     throw new StructuredTurnError(
@@ -992,23 +1155,44 @@ function validateCollabAgentItem(item, context) {
       { kind: "policy", details: { senderSha256: sha256Text(senderThreadId) } },
     );
   }
-  if (item.model !== undefined && item.model !== null && item.model !== "gpt-5.6-sol") {
-    throw new StructuredTurnError(
-      "COLLAB_MODEL_FORBIDDEN",
-      "Delegated collaboration item requested a non-qualified model",
-      { kind: "policy", details: { modelSha256: hashUnknownText(item.model) } },
-    );
-  }
-  if (
-    item.reasoningEffort !== undefined &&
-    item.reasoningEffort !== null &&
-    item.reasoningEffort !== "ultra"
-  ) {
-    throw new StructuredTurnError(
-      "COLLAB_REASONING_FORBIDDEN",
-      "Delegated collaboration item requested non-qualified reasoning effort",
-      { kind: "policy", details: { effortSha256: hashUnknownText(item.reasoningEffort) } },
-    );
+  if (tool === "spawnAgent") {
+    if (context.completed) {
+      if (status !== "completed") {
+        throw new StructuredTurnError(
+          "COLLAB_SPAWN_NOT_COMPLETED",
+          "Delegated collaboration spawn did not complete successfully",
+          { kind: "policy" },
+        );
+      }
+      // Pinned V1 start items carry requested values, including empty/default
+      // inheritance markers. Only the completion carries the effective child
+      // snapshot and is therefore eligible to prove exact Sol Ultra policy.
+      if (item.model !== "gpt-5.6-sol") {
+        throw new StructuredTurnError(
+          "COLLAB_MODEL_FORBIDDEN",
+          "Completed delegation did not prove the qualified model",
+          { kind: "policy", details: { modelSha256: hashUnknownText(item.model) } },
+        );
+      }
+      if (item.reasoningEffort !== "ultra") {
+        throw new StructuredTurnError(
+          "COLLAB_REASONING_FORBIDDEN",
+          "Completed delegation did not prove qualified reasoning effort",
+          { kind: "policy", details: { effortSha256: hashUnknownText(item.reasoningEffort) } },
+        );
+      }
+    } else if (
+      (item.model !== undefined && item.model !== null && typeof item.model !== "string") ||
+      (item.reasoningEffort !== undefined &&
+        item.reasoningEffort !== null &&
+        typeof item.reasoningEffort !== "string")
+    ) {
+      throw new StructuredTurnError(
+        "COLLAB_REQUEST_POLICY_INVALID",
+        "Started delegation contained malformed requested policy fields",
+        { kind: "protocol" },
+      );
+    }
   }
   if (!Array.isArray(item.receiverThreadIds)) {
     throw new StructuredTurnError(
@@ -1029,7 +1213,15 @@ function validateCollabAgentItem(item, context) {
   }
 
   if (tool === "spawnAgent" && context.terminalReplay !== true) {
-    for (const receiver of receivers) context.delegatedAgentIds.add(receiver);
+    const expectedReceiverCount = context.completed ? 1 : 0;
+    if (receivers.length !== expectedReceiverCount) {
+      throw new StructuredTurnError(
+        "COLLAB_SPAWN_RECEIVERS_INVALID",
+        "Delegation spawn did not preserve the pinned receiver lifecycle",
+        { kind: "protocol", details: { expectedReceiverCount } },
+      );
+    }
+    if (context.completed) context.delegatedAgentIds.add(receivers[0]);
     if (context.delegatedAgentIds.size > MAX_DELEGATED_AGENTS) {
       throw new StructuredTurnError(
         "DELEGATION_LIMIT_EXCEEDED",
@@ -1042,6 +1234,20 @@ function validateCollabAgentItem(item, context) {
   }
 
   const agentsStates = requireRecord(item.agentsStates, "collaboration agentsStates");
+  if (tool === "spawnAgent" && context.terminalReplay !== true) {
+    const stateReceivers = Object.keys(agentsStates);
+    if (
+      (!context.completed && stateReceivers.length !== 0) ||
+      (context.completed &&
+        (stateReceivers.length !== 1 || stateReceivers[0] !== receivers[0]))
+    ) {
+      throw new StructuredTurnError(
+        "COLLAB_SPAWN_STATES_INVALID",
+        "Delegation spawn did not preserve the pinned agent-state lifecycle",
+        { kind: "protocol" },
+      );
+    }
+  }
   for (const [receiver, rawState] of Object.entries(agentsStates)) {
     if (!context.delegatedAgentIds.has(receiver)) {
       throw new StructuredTurnError(
@@ -1075,19 +1281,47 @@ function assertKnownDelegatedReceivers(receivers, delegatedAgentIds) {
   }
 }
 
-/** @param {Readonly<Record<string, unknown>>} item @param {ReadonlySet<string>} delegatedAgentIds */
-function validateSubAgentActivity(item, delegatedAgentIds) {
+/**
+ * @param {Readonly<Record<string, unknown>>} item
+ * @param {{delegatedAgentIds: Set<string>, v2StartedAgentIds: Set<string>}} context
+ */
+function validateSubAgentActivity(item, context) {
   requireNonEmptyText(item.id, "sub-agent activity item id");
   const agentThreadId = requireNonEmptyText(item.agentThreadId, "sub-agent thread id");
-  if (!delegatedAgentIds.has(agentThreadId)) {
+  const agentPath = requireNonEmptyText(item.agentPath, "sub-agent path");
+  const kind = requireAllowedText(
+    item.kind,
+    SUB_AGENT_ACTIVITY_KINDS,
+    "sub-agent activity kind",
+  );
+  if (kind === "started") {
+    if (context.v2StartedAgentIds.has(agentThreadId)) {
+      throw new StructuredTurnError(
+        "SUB_AGENT_STARTED_DUPLICATE",
+        "Sub-agent activity started the same V2 receiver more than once",
+        { kind: "protocol", details: { receiverSha256: sha256Text(agentThreadId) } },
+      );
+    }
+    context.v2StartedAgentIds.add(agentThreadId);
+    context.delegatedAgentIds.add(agentThreadId);
+    if (context.delegatedAgentIds.size > MAX_DELEGATED_AGENTS) {
+      throw new StructuredTurnError(
+        "DELEGATION_LIMIT_EXCEEDED",
+        "Structured turn exceeded the delegated-agent limit",
+        { kind: "policy", details: { maxDelegatedAgents: MAX_DELEGATED_AGENTS } },
+      );
+    }
+    return;
+  }
+  if (!context.delegatedAgentIds.has(agentThreadId)) {
     throw new StructuredTurnError(
       "SUB_AGENT_UNKNOWN",
       "Sub-agent activity referenced an unqualified receiver thread",
       { kind: "policy", details: { receiverSha256: sha256Text(agentThreadId) } },
     );
   }
-  requireNonEmptyText(item.agentPath, "sub-agent path");
-  requireAllowedText(item.kind, SUB_AGENT_ACTIVITY_KINDS, "sub-agent activity kind");
+  // Force path validation above even when only thread identity is used here.
+  void agentPath;
 }
 
 /**

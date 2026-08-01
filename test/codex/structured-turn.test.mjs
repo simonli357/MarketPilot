@@ -116,21 +116,43 @@ for (const [scenario, code] of [
   ["schema-mismatch", "OUTPUT_INVALID"],
   ["malformed-start-response", "TRANSPORT_PROTOCOL_FAILURE"],
   ["malformed-item", "TRANSPORT_PROTOCOL_FAILURE"],
+  ["completion-without-start", "ITEM_STARTED_MISSING"],
+  ["dangling-item-start", "ITEM_COMPLETED_MISSING"],
+  ["duplicate-item-start", "DUPLICATE_ITEM_STARTED"],
+  ["item-lifecycle-mismatch", "ITEM_LIFECYCLE_MISMATCH"],
   ["missing-final", "OUTPUT_AMBIGUOUS"],
   ["ambiguous-final", "OUTPUT_AMBIGUOUS"],
+  ["missing-message-phase", "OUTPUT_AMBIGUOUS"],
+  ["invalid-message-phase", "AGENT_MESSAGE_PHASE_INVALID"],
   ["interrupted", "TURN_INTERRUPTED"],
   ["rate-limit", "RATE_LIMITED"],
   ["auth-error", "AUTH_REQUIRED"],
   ["remote-rate-limit", "RATE_LIMITED"],
   ["remote-auth-error", "AUTH_REQUIRED"],
   ["mismatched-terminal", "THREAD_ID_MISMATCH"],
-  ["conflicting-terminal-item", "TERMINAL_ITEM_MISMATCH"],
+  ["conflicting-terminal-item", "TERMINAL_ITEMS_NOT_EMPTY"],
 ]) {
   test(`${scenario} never returns an accepted artifact`, async (context) => {
     const harness = await startHarness(context, scenario);
     await expectCode(runFixtureTurn(harness), code);
   });
 }
+
+test("selects one final-answer message while allowing phased commentary", async (context) => {
+  const harness = await startHarness(context, "commentary-before-final");
+  const result = await runFixtureTurn(harness);
+  assert.equal(result.status, "completed");
+  assert.equal(result.finalMessageId, "fixture-agent-message-2");
+});
+
+test("ignores a schema-valid unphased message before one explicit final answer", async (context) => {
+  const harness = await startHarness(context, "unphased-before-final");
+
+  const result = await runFixtureTurn(harness);
+
+  assert.equal(result.finalMessageId, "fixture-agent-message-2");
+  assert.equal(result.status, "completed");
+});
 
 test("forbidden MCP tool fails the exact server/tool allowlist", async (context) => {
   const harness = await startHarness(context, "forbidden-tool");
@@ -139,6 +161,16 @@ test("forbidden MCP tool fails the exact server/tool allowlist", async (context)
       allowedMcpTools: new Set([REQUIRED_MCP_TOOL]),
     }),
     "MCP_TOOL_FORBIDDEN",
+  );
+});
+
+test("MCP arguments cannot change across the item lifecycle", async (context) => {
+  const harness = await startHarness(context, "mcp-lifecycle-arguments-mismatch");
+  await expectCode(
+    runFixtureTurn(harness, {
+      allowedMcpTools: new Set([REQUIRED_MCP_TOOL]),
+    }),
+    "ITEM_LIFECYCLE_MISMATCH",
   );
 });
 
@@ -223,14 +255,14 @@ for (const scenario of [
   "conflicting-terminal-mcp-result",
   "conflicting-terminal-mcp-is-error",
 ]) {
-  test(`${scenario} cannot change completed MCP safety evidence`, async (context) => {
+  test(`${scenario} cannot inject a non-empty terminal item snapshot`, async (context) => {
     const harness = await startHarness(context, scenario);
     await expectCode(
       runFixtureTurn(harness, {
         allowedMcpTools: new Set([REQUIRED_MCP_TOOL]),
         requiredMcpTools: new Set([REQUIRED_MCP_TOOL]),
       }),
-      "TERMINAL_ITEM_MISMATCH",
+      "TERMINAL_ITEMS_NOT_EMPTY",
     );
   });
 }
@@ -258,6 +290,204 @@ test("allows at most two exact Sol Ultra delegated receivers", async (context) =
   const harness = await startHarness(context, "bounded-delegation-success");
   const result = await runFixtureTurn(harness);
   assert.equal(result.status, "completed");
+});
+
+test("accepts pinned V2 atomic delegation with an empty-evidence wait item", async (context) => {
+  const harness = await startHarness(context, "v2-delegation-success");
+  const result = await runFixtureTurn(harness);
+  assert.equal(result.status, "completed");
+});
+
+test("multiplexed child lifecycle is rejected unless an exact synchronous validator owns it", async (context) => {
+  const rejected = await startHarness(context, "foreign-child-lifecycle");
+  await expectCode(runFixtureTurn(rejected), "THREAD_ID_MISMATCH");
+
+  const accepted = await startHarness(context, "foreign-child-lifecycle");
+  const methods = [];
+  const result = await runFixtureTurn(accepted, {
+    validateForeignTurnNotification: (notification) => {
+      methods.push(notification.method);
+      assert.equal(notification.params.threadId, "fixture-child-thread");
+      assert.equal(Object.isFrozen(notification), true);
+      assert.equal(Object.isFrozen(notification.params), true);
+      if (notification.params.item) {
+        assert.equal(Object.isFrozen(notification.params.item), true);
+      }
+      return true;
+    },
+  });
+  assert.equal(result.status, "completed");
+  assert.deepEqual(methods, [
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "turn/completed",
+  ]);
+});
+
+test("keeps multiplex listeners alive until delayed child terminal evidence settles", async (context) => {
+  const harness = await startHarness(context, "foreign-child-delayed-terminal");
+  const methods = [];
+  let resolveEvidence;
+  const evidence = new Promise((resolve) => {
+    resolveEvidence = resolve;
+  });
+
+  const result = await runFixtureTurn(harness, {
+    validateForeignTurnNotification: (notification) => {
+      methods.push(notification.method);
+      assert.equal(harness.client.state, "running");
+      if (notification.method === "turn/completed") resolveEvidence();
+      return true;
+    },
+    awaitAdditionalEvidence: () => evidence,
+  });
+
+  assert.equal(result.status, "completed");
+  assert.equal(harness.client.state, "stopped");
+  assert.deepEqual(methods, [
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "turn/completed",
+  ]);
+});
+
+test("missing additional evidence fails on the original absolute deadline", async (context) => {
+  const harness = await startHarness(context, "happy");
+  const startedAt = performance.now();
+
+  await expectCode(
+    runFixtureTurn(harness, {
+      deadlineMs: 100,
+      awaitAdditionalEvidence: () => new Promise(() => {}),
+    }),
+    "TURN_TIMEOUT",
+  );
+
+  assert(performance.now() - startedAt < 700, "additional evidence amplified the deadline");
+  assert.equal(harness.client.state, "stopped");
+  assert.equal(isStructuredTurnClientQuarantined(harness.client), true);
+});
+
+test("additional evidence rejection fails closed without exposing its reason", async (context) => {
+  const harness = await startHarness(context, "happy");
+  const error = await captureCode(
+    runFixtureTurn(harness, {
+      awaitAdditionalEvidence: () => Promise.reject(
+        new Error("sk-secret-observer-reason-never-report"),
+      ),
+    }),
+    "ADDITIONAL_EVIDENCE_REJECTED",
+  );
+
+  assert.equal(
+    `${error.message} ${JSON.stringify(error.details)}`.includes(
+      "sk-secret-observer-reason-never-report",
+    ),
+    false,
+  );
+});
+
+test("an invalid additional-evidence gate cannot start external turn work", async (context) => {
+  for (const awaitAdditionalEvidence of [
+    () => {
+      throw new Error("observer setup failed");
+    },
+    /** @type {any} */ (() => true),
+  ]) {
+    const harness = await startHarness(context, "happy");
+    const request = harness.client.request.bind(harness.client);
+    let turnStartCalls = 0;
+    harness.client.request = (method, params, options) => {
+      if (method === "turn/start") turnStartCalls += 1;
+      return request(method, params, options);
+    };
+    await expectCode(
+      runFixtureTurn(harness, { awaitAdditionalEvidence }),
+      "ADDITIONAL_EVIDENCE_REJECTED",
+    );
+    assert.equal(turnStartCalls, 0, "invalid evidence setup started external turn work");
+    assert.equal(harness.client.state, "running");
+  }
+});
+
+test("additional-evidence setup owns the client and counts against the deadline", async (context) => {
+  const harness = await startHarness(context, "happy");
+  let nestedTurn;
+  const result = await runFixtureTurn(harness, {
+    awaitAdditionalEvidence: () => {
+      nestedTurn = runFixtureTurn(harness);
+      void nestedTurn.catch(() => {});
+      return Promise.resolve();
+    },
+  });
+  assert.equal(result.status, "completed");
+  await expectCode(nestedTurn, "TURN_ALREADY_ACTIVE");
+
+  const slowHarness = await startHarness(context, "happy");
+  const request = slowHarness.client.request.bind(slowHarness.client);
+  let turnStartCalls = 0;
+  slowHarness.client.request = (method, params, options) => {
+    if (method === "turn/start") turnStartCalls += 1;
+    return request(method, params, options);
+  };
+  await expectCode(
+    runFixtureTurn(slowHarness, {
+      deadlineMs: 50,
+      awaitAdditionalEvidence: () => {
+        const stopAt = performance.now() + 75;
+        while (performance.now() < stopAt) {
+          // Deliberately occupy setup to prove the absolute deadline starts first.
+        }
+        return Promise.resolve();
+      },
+    }),
+    "TURN_TIMEOUT",
+  );
+  assert.equal(turnStartCalls, 0);
+  assert.equal(slowHarness.client.state, "running");
+});
+
+test("post-terminal runtime failure rejects a pending evidence gate promptly", async (context) => {
+  const harness = await startHarness(context, "happy");
+  const startedAt = performance.now();
+  await expectCode(
+    runFixtureTurn(harness, {
+      deadlineMs: 1_000,
+      awaitAdditionalEvidence: () => new Promise(() => {}),
+      parseFinal: (text) => {
+        setTimeout(() => {
+          harness.client.emit("incident", new StructuredTurnError(
+            "POST_TERMINAL_INCIDENT",
+            "Fixture transport incident after primary terminal",
+            { kind: "protocol" },
+          ));
+        }, 20);
+        return parseProbeArtifact(text);
+      },
+    }),
+    "POST_TERMINAL_INCIDENT",
+  );
+  assert(performance.now() - startedAt < 700, "late failure waited for the turn deadline");
+  assert.equal(harness.client.state, "stopped");
+  assert.equal(isStructuredTurnClientQuarantined(harness.client), true);
+});
+
+test("foreign lifecycle validators fail closed on rejection or async output", async (context) => {
+  const rejected = await startHarness(context, "foreign-child-lifecycle");
+  await expectCode(
+    runFixtureTurn(rejected, { validateForeignTurnNotification: () => false }),
+    "FOREIGN_NOTIFICATION_REJECTED",
+  );
+
+  const asynchronous = await startHarness(context, "foreign-child-lifecycle");
+  await expectCode(
+    runFixtureTurn(asynchronous, {
+      validateForeignTurnNotification: async () => true,
+    }),
+    "FOREIGN_NOTIFICATION_VALIDATOR_ASYNC",
+  );
 });
 
 for (const [scenario, code] of [
@@ -458,6 +688,8 @@ async function startHarness(context, scenario, clientOptions = {}) {
  *   allowedMcpTools?: ReadonlySet<string>,
  *   requiredMcpTools?: ReadonlySet<string>,
  *   validateMcpCompletion?: (evidence: any) => boolean | void,
+ *   validateForeignTurnNotification?: (notification: any) => boolean | void,
+ *   awaitAdditionalEvidence?: () => Promise<void>,
  *   parseFinal?: (text: string) => unknown,
  *   signal?: AbortSignal
  * }} [options]
@@ -474,6 +706,8 @@ function runFixtureTurn(harness, options = {}) {
     allowedMcpTools: options.allowedMcpTools ?? new Set(),
     requiredMcpTools: options.requiredMcpTools ?? new Set(),
     validateMcpCompletion: options.validateMcpCompletion,
+    validateForeignTurnNotification: options.validateForeignTurnNotification,
+    awaitAdditionalEvidence: options.awaitAdditionalEvidence,
   });
 }
 

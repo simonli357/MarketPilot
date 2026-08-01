@@ -102,12 +102,15 @@ test("happy server exposes the stable runtime inventories and terminal result", 
 
   const startedResponse = await server.nextMessage();
   const startedNotification = await server.nextMessage();
+  const itemStarted = await server.nextMessage();
   const itemCompleted = await server.nextMessage();
   const turnCompleted = await server.nextMessage();
 
   assert.equal(startedResponse.id, 9);
   assert.equal(startedResponse.result.turn.status, "inProgress");
   assert.equal(startedNotification.method, "turn/started");
+  assert.equal(itemStarted.method, "item/started");
+  assert.equal(itemStarted.params.item.id, itemCompleted.params.item.id);
   assert.equal(itemCompleted.method, "item/completed");
   assert.equal(itemCompleted.params.item.type, "agentMessage");
   assert.deepEqual(JSON.parse(itemCompleted.params.item.text), {
@@ -122,9 +125,7 @@ test("happy server exposes the stable runtime inventories and terminal result", 
   assert.equal(turnCompleted.method, "turn/completed");
   assert.equal(turnCompleted.params.threadId, "fixture-thread-resumed");
   assert.equal(turnCompleted.params.turn.status, "completed");
-  assert.deepEqual(turnCompleted.params.turn.items, [
-    itemCompleted.params.item,
-  ]);
+  assert.deepEqual(turnCompleted.params.turn.items, []);
 });
 
 test("server enforces initialize then initialized ordering", async (t) => {
@@ -274,23 +275,30 @@ test("reroute scenario records the model change before completion", async (t) =>
   assert.equal(reroute.method, "model/rerouted");
   assert.equal(reroute.params.fromModel, "gpt-5.6-sol");
   assert.equal(reroute.params.toModel, "gpt-5.6-terra");
+  assert.equal((await server.nextMessage()).method, "item/started");
   assert.equal((await server.nextMessage()).method, "item/completed");
   assert.equal((await server.nextMessage()).method, "turn/completed");
 });
 
-test("ambiguous final scenario completes with two terminal agent messages", async (t) => {
+test("ambiguous final scenario emits two completed agent messages before an empty terminal snapshot", async (t) => {
   const server = startServer("ambiguous-final");
   t.after(() => server.stop());
 
   await prepareTurn(server);
   await server.nextMessage();
   await server.nextMessage();
+  const firstStarted = await server.nextMessage();
   const first = await server.nextMessage();
+  const secondStarted = await server.nextMessage();
   const second = await server.nextMessage();
   const terminal = await server.nextMessage();
+  assert.equal(firstStarted.method, "item/started");
+  assert.equal(secondStarted.method, "item/started");
+  assert.equal(first.method, "item/completed");
+  assert.equal(second.method, "item/completed");
   assert.equal(first.params.item.type, "agentMessage");
   assert.equal(second.params.item.type, "agentMessage");
-  assert.equal(terminal.params.turn.items.length, 2);
+  assert.equal(terminal.params.turn.items.length, 0);
 });
 
 test("crash scenario exits while starting a turn", async (t) => {

@@ -55,12 +55,21 @@ const QUALIFICATION = Object.freeze({
   stableSchemaSha256: QUALIFIED_LINUX_X64_BASELINE.stableSchemaSha256,
   stableSchemaManifestSha256: QUALIFIED_LINUX_X64_BASELINE.stableSchemaManifestSha256,
 });
+const SUCCESSFUL_LIFECYCLE_PROOF = Object.freeze({
+  schemaVersion: 1,
+  materializationPassed: true,
+  restartResumePassed: true,
+  interruptRecoveryPassed: true,
+  delegationPassed: true,
+  delegatedAgentCount: 1,
+});
 
 test("argument parser exposes only opt-in browser login and bounded deadlines", () => {
   assert.deepEqual(parseAuthenticatedSmokeArguments([]), {
     help: false,
     login: false,
     requestTimeoutMs: 30_000,
+    turnTimeoutMs: 180_000,
     loginTimeoutMs: 300_000,
   });
   assert.deepEqual(
@@ -68,6 +77,8 @@ test("argument parser exposes only opt-in browser login and bounded deadlines", 
       "--login",
       "--timeout-ms",
       "2000",
+      "--turn-timeout-ms",
+      "240000",
       "--login-timeout-ms",
       "10000",
     ]),
@@ -75,8 +86,26 @@ test("argument parser exposes only opt-in browser login and bounded deadlines", 
       help: false,
       login: true,
       requestTimeoutMs: 2_000,
+      turnTimeoutMs: 240_000,
       loginTimeoutMs: 10_000,
     },
+  );
+  assert.throws(
+    () => parseAuthenticatedSmokeArguments(["--turn-timeout-ms", "29999"]),
+    /must be an integer from 30000 through 300000/u,
+  );
+  assert.throws(
+    () => parseAuthenticatedSmokeArguments(["--turn-timeout-ms", "300001"]),
+    /must be an integer from 30000 through 300000/u,
+  );
+  assert.throws(
+    () => parseAuthenticatedSmokeArguments([
+      "--turn-timeout-ms",
+      "30000",
+      "--turn-timeout-ms",
+      "30000",
+    ]),
+    /may be supplied only once/u,
   );
 });
 
@@ -228,21 +257,85 @@ test("non-ChatGPT account auth is rejected before catalog or turn access", async
   assert.equal(client.stopCount, 1);
 });
 
+test("pre-turn runtime guard rejects unknown notifications before account or model access", async () => {
+  const client = new FakeSmokeClient({ authenticated: true });
+  const request = client.request.bind(client);
+  client.request = async (method, params, options) => {
+    const result = await request(method, params, options);
+    if (method === "config/read") {
+      client.emit("notification", {
+        method: "future/runtimeCapabilityChanged",
+        params: {},
+      });
+    }
+    return result;
+  };
+
+  const report = await runAuthenticatedSmoke({
+    projectRoot: PROJECT_ROOT,
+    sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+    dependencies: dependencies(client),
+  });
+
+  assert.equal(report.status, "failed");
+  assert.equal(report.failure.code, "RUNTIME_NOTIFICATION_FORBIDDEN");
+  assert.equal(client.methods.includes("account/read"), false);
+  assert.equal(client.methods.includes("model/list"), false);
+  assert.equal(client.listenerCount("notification"), 0);
+});
+
+test("smoke client boundary requires an exact empty server-request allowlist", async () => {
+  const client = new FakeSmokeClient({ authenticated: true });
+  client.serverRequestsForbidden = false;
+  const report = await runAuthenticatedSmoke({
+    projectRoot: PROJECT_ROOT,
+    sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+    dependencies: dependencies(client),
+  });
+
+  assert.equal(report.status, "failed");
+  assert.equal(report.failure.code, "SERVER_REQUEST_POLICY_UNSAFE");
+  assert.equal(client.state, "stopped");
+  assert.equal(client.stopCount, 1);
+});
+
+test("thread/started remains valid outside the structured-turn ownership scope", async () => {
+  const client = new FakeSmokeClient({ authenticated: true, emitThreadStarted: true });
+  const report = await runAuthenticatedSmoke({
+    projectRoot: PROJECT_ROOT,
+    sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+    dependencies: dependencies(client, {
+      runTurn: async (options) => {
+        emitCompletedFixtureMcp(client, options, "fixture-mcp-item");
+        return successfulTurn(options.threadId);
+      },
+    }),
+  });
+
+  assert.equal(report.status, "passed");
+  assert.equal(report.automatedCorePassed, true);
+});
+
 test("explicit --login proves the fixed public MCP turn without exposing its content", async () => {
   const client = new FakeSmokeClient({ authenticated: false });
   /** @type {string[]} */
   const openedUrls = [];
+  let lifecycleInvocations = 0;
   const report = await runAuthenticatedSmoke({
     projectRoot: PROJECT_ROOT,
     login: true,
+    requestTimeoutMs: 2_000,
+    turnTimeoutMs: 240_000,
     sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
     dependencies: dependencies(client, {
       openBrowser: async (url) => {
         openedUrls.push(url);
       },
       runTurn: async (options) => {
+        assert.equal(options.deadlineMs, 240_000);
         assert.equal(options.outputSchema, PROBE_OUTPUT_SCHEMA);
         assert.equal(options.input.length, 1);
+        assert.match(options.input[0].text, /never request user input or clarification/iu);
         assert.match(options.input[0].text, new RegExp(PUBLIC_FIXTURE_ID, "u"));
         assert.match(options.input[0].text, /PUBLIC_OFFICIAL/u);
         assert.deepEqual(
@@ -296,19 +389,70 @@ test("explicit --login proves the fixed public MCP turn without exposing its con
           },
         };
       },
+      runLifecycle: async (options) => {
+        lifecycleInvocations += 1;
+        assert.equal(options.materializedClient, client);
+        assert.equal(options.materialized.threadId, "fixture-thread");
+        assert.equal(options.materialized.turnId, "fixture-turn");
+        assert.equal(options.materialized.finalMessageId, "fixture-message");
+        assert.equal(
+          options.materialized.threadPath,
+          path.join(RUNTIME.runtime.codexHome, "sessions", "fixture-thread.jsonl"),
+        );
+        assert.equal(options.codexHome, RUNTIME.runtime.codexHome);
+        assert.equal(options.cwd, RUNTIME.runtime.workDir);
+        assert.match(options.resumedTurn.input[0].text, /exactly one subagent named auth_probe/iu);
+        assert.match(options.resumedTurn.input[0].text, /gpt-5\.6-sol/u);
+        assert.match(options.resumedTurn.input[0].text, /ultra/u);
+        assert.equal(options.resumedTurn.allowedMcpTools.size, 0);
+        assert.equal(options.resumedTurn.requiredMcpTools.size, 0);
+        const resumedArtifact = options.resumedTurn.parseFinal(JSON.stringify({
+          fixtureId: PUBLIC_FIXTURE_ID,
+          priorCheckNames: ["fixture"],
+          stage: "restart-resume",
+          status: "ok",
+        }));
+        assert.equal(options.validateContinuity({
+          materializedArtifact: options.materialized.artifact,
+          resumedArtifact,
+        }), true);
+        assert.equal(options.validateContinuity({
+          materializedArtifact: options.materialized.artifact,
+          resumedArtifact: { ...resumedArtifact, priorCheckNames: ["not-from-history"] },
+        }), false);
+        assert.throws(
+          () => options.resumedTurn.parseFinal(JSON.stringify({
+            fixtureId: "custom-fixture",
+            priorCheckNames: ["fixture"],
+            stage: "restart-resume",
+            status: "ok",
+          })),
+          /fixed public contract/u,
+        );
+        return SUCCESSFUL_LIFECYCLE_PROOF;
+      },
     }),
   });
 
   assert.deepEqual(openedUrls, ["https://auth.openai.com/oauth/authorize?fixture=1"]);
+  assert.ok(client.requestCalls.length > 0);
+  assert.deepEqual([...new Set(client.requestCalls.map(({ timeoutMs }) => timeoutMs))], [2_000]);
+  const threadStart = client.requestCalls.find(({ method }) => method === "thread/start");
+  assert.match(
+    threadStart?.params?.developerInstructions,
+    /Never request user input or clarification/u,
+  );
+  assert.equal(threadStart?.params?.ephemeral, false);
+  assert.equal(lifecycleInvocations, 1);
   assert.equal(client.stopCount, 1);
   assert.equal(report.automatedCorePassed, true);
-  assert.equal(report.status, "incomplete");
+  assert.equal(report.status, "passed");
   assert.equal(check(report, "browser-chatgpt-login").status, "passed");
   assert.equal(check(report, "sol-ultra-entitlement").status, "passed");
   assert.equal(check(report, "required-mcp-structured-turn").status, "passed");
-  assert.equal(check(report, "restart-resume").status, "incomplete");
-  assert.equal(check(report, "interrupt-lifecycle").status, "incomplete");
-  assert.equal(check(report, "bounded-delegation").status, "incomplete");
+  assert.equal(check(report, "restart-resume").status, "passed");
+  assert.equal(check(report, "interrupt-lifecycle").status, "passed");
+  assert.equal(check(report, "bounded-delegation").status, "passed");
   const serialized = JSON.stringify(report);
   assert.doesNotMatch(serialized, /sensitive-model-text|sensitive-artifact-detail|oauth\/authorize/u);
 });
@@ -334,6 +478,32 @@ test("turn failure still stops the process and reports controlled evidence", asy
   assert.doesNotMatch(JSON.stringify(report), /prompt content/u);
 });
 
+test("an invalid lifecycle proof fails every lifecycle check without exposing dependency text", async () => {
+  const client = new FakeSmokeClient({ authenticated: true });
+  const report = await runAuthenticatedSmoke({
+    projectRoot: PROJECT_ROOT,
+    sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+    dependencies: dependencies(client, {
+      runTurn: async (options) => {
+        emitCompletedFixtureMcp(client, options, "fixture-mcp-one");
+        return successfulTurn(options.threadId);
+      },
+      runLifecycle: async () => ({
+        ...SUCCESSFUL_LIFECYCLE_PROOF,
+        delegatedAgentCount: 0,
+        secret: "dependency-text-must-not-escape",
+      }),
+    }),
+  });
+
+  assert.equal(report.status, "failed");
+  assert.equal(report.failure.code, "LIFECYCLE_PROOF_INVALID");
+  assert.equal(check(report, "restart-resume").status, "failed");
+  assert.equal(check(report, "interrupt-lifecycle").status, "failed");
+  assert.equal(check(report, "bounded-delegation").status, "failed");
+  assert.doesNotMatch(JSON.stringify(report), /dependency-text/u);
+});
+
 test("two distinct successful fixture MCP calls fail the exactly-once smoke rule", async () => {
   const client = new FakeSmokeClient({ authenticated: true });
   const report = await runAuthenticatedSmoke({
@@ -352,6 +522,44 @@ test("two distinct successful fixture MCP calls fail the exactly-once smoke rule
   assert.equal(report.failure.code, "REQUIRED_MCP_CALL_COUNT_INVALID");
   assert.equal(check(report, "required-mcp-structured-turn").status, "failed");
   assert.equal(client.stopCount, 1);
+});
+
+test("the materializing fixture turn rejects unrequested delegation", async () => {
+  const client = new FakeSmokeClient({ authenticated: true });
+  let lifecycleCalled = false;
+  const report = await runAuthenticatedSmoke({
+    projectRoot: PROJECT_ROOT,
+    sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+    dependencies: dependencies(client, {
+      runTurn: async (options) => {
+        emitCompletedFixtureMcp(client, options, "fixture-mcp-one");
+        client.emit("notification", {
+          method: "item/completed",
+          params: {
+            threadId: options.threadId,
+            turnId: "fixture-turn",
+            item: {
+              id: "fixture-unrequested-delegate",
+              type: "subAgentActivity",
+              kind: "started",
+              agentThreadId: "fixture-child",
+              agentPath: "/root/auth_probe",
+            },
+          },
+        });
+        return successfulTurn(options.threadId);
+      },
+      runLifecycle: async () => {
+        lifecycleCalled = true;
+        return SUCCESSFUL_LIFECYCLE_PROOF;
+      },
+    }),
+  });
+
+  assert.equal(report.status, "failed");
+  assert.equal(report.failure.code, "BOOTSTRAP_DELEGATION_FORBIDDEN");
+  assert.equal(check(report, "required-mcp-structured-turn").status, "failed");
+  assert.equal(lifecycleCalled, false);
 });
 
 test("browser login rejects immediately on a transport incident and releases listeners", async () => {
@@ -402,8 +610,33 @@ test("browser login rejects immediately on process exit and releases listeners",
   assert.equal(client.stopCount, 1);
 });
 
-test("unsafe effective config fails before skills, MCP, account, or model access", async () => {
-  const client = new FakeSmokeClient({ authenticated: true, unknownEnabledFeature: true });
+test("unsafe effective feature config fails before skills, MCP, account, or model access", async () => {
+  for (const clientOptions of [
+    { authenticated: true, unknownEnabledFeature: true },
+    { authenticated: true, requestUserInputEnabled: true },
+  ]) {
+    const client = new FakeSmokeClient(clientOptions);
+    const report = await runAuthenticatedSmoke({
+      projectRoot: PROJECT_ROOT,
+      sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
+      dependencies: dependencies(client),
+    });
+
+    assert.equal(report.status, "failed");
+    assert.equal(report.failure.code, "EFFECTIVE_CONFIG_UNSAFE");
+    assert.equal(check(report, "exact-runtime-inventory").status, "failed");
+    for (const forbiddenMethod of ["skills/list", "mcpServerStatus/list", "account/read", "model/list"]) {
+      assert.equal(client.methods.includes(forbiddenMethod), false);
+    }
+    assert.equal(client.stopCount, 1);
+  }
+});
+
+test("enabled request-input registration fails before skills, MCP, account, or model access", async () => {
+  const client = new FakeSmokeClient({
+    authenticated: true,
+    requestUserInputRegistrationEnabled: true,
+  });
   const report = await runAuthenticatedSmoke({
     projectRoot: PROJECT_ROOT,
     sourceEnv: { XDG_RUNTIME_DIR: "/run/user/1000" },
@@ -411,7 +644,7 @@ test("unsafe effective config fails before skills, MCP, account, or model access
   });
 
   assert.equal(report.status, "failed");
-  assert.equal(report.failure.code, "EFFECTIVE_CONFIG_UNSAFE");
+  assert.equal(report.failure.code, "REQUEST_USER_INPUT_ENABLED");
   assert.equal(check(report, "exact-runtime-inventory").status, "failed");
   for (const forbiddenMethod of ["skills/list", "mcpServerStatus/list", "account/read", "model/list"]) {
     assert.equal(client.methods.includes(forbiddenMethod), false);
@@ -545,6 +778,7 @@ test("unexpected enabled skills are disabled before any account or model access"
         emitCompletedFixtureMcp(finalClient, options, "fixture-mcp-item");
         return successfulTurn(options.threadId);
       },
+      runLifecycle: async () => SUCCESSFUL_LIFECYCLE_PROOF,
       nowIso: () => "2026-07-27T00:00:00.000Z",
     },
   });
@@ -561,44 +795,59 @@ test("unexpected enabled skills are disabled before any account or model access"
 
 test("CLI emits one checklist and maps incomplete status to exit code 2", async () => {
   let output = "";
+  let receivedOptions;
   const exitCode = await runAuthenticatedSmokeCli({
-    argv: [],
+    argv: ["--timeout-ms", "2000", "--turn-timeout-ms", "240000"],
     stdout: { write: (value) => { output += value; return true; } },
     projectRoot: PROJECT_ROOT,
     sourceEnv: {},
-    runSmoke: async () => ({
-      schemaVersion: 1,
-      mode: "authenticated-manual",
-      status: "incomplete",
-      automatedCorePassed: true,
-      completedAt: "2026-07-27T00:00:00.000Z",
-      checks: [{ id: "restart-resume", status: "incomplete", detail: "Manual check required." }],
-    }),
+    runSmoke: async (options) => {
+      receivedOptions = options;
+      return {
+        schemaVersion: 1,
+        mode: "authenticated-manual",
+        status: "incomplete",
+        automatedCorePassed: true,
+        completedAt: "2026-07-27T00:00:00.000Z",
+        checks: [{ id: "restart-resume", status: "incomplete", detail: "Manual check required." }],
+      };
+    },
   });
 
   assert.equal(exitCode, 2);
+  assert.equal(receivedOptions?.requestTimeoutMs, 2_000);
+  assert.equal(receivedOptions?.turnTimeoutMs, 240_000);
   assert.equal(JSON.parse(output).status, "incomplete");
 });
 
 class FakeSmokeClient extends EventEmitter {
-  /** @param {{authenticated: boolean, accountType?: string, loginOutcome?: "success" | "incident" | "exit", extraSkillPath?: string, unknownEnabledFeature?: boolean}} options */
+  /** @param {{authenticated: boolean, accountType?: string, loginOutcome?: "success" | "incident" | "exit", extraSkillPath?: string, unknownEnabledFeature?: boolean, requestUserInputEnabled?: boolean, requestUserInputRegistrationEnabled?: boolean, emitThreadStarted?: boolean}} options */
   constructor({
     authenticated,
     accountType = "chatgpt",
     loginOutcome = "success",
     extraSkillPath,
     unknownEnabledFeature = false,
+    requestUserInputEnabled = false,
+    requestUserInputRegistrationEnabled = false,
+    emitThreadStarted = false,
   }) {
     super();
     this.state = "idle";
+    this.serverRequestsForbidden = true;
     this.authenticated = authenticated;
     this.accountType = accountType;
     this.loginOutcome = loginOutcome;
     this.extraSkillPath = extraSkillPath;
     this.unknownEnabledFeature = unknownEnabledFeature;
+    this.requestUserInputEnabled = requestUserInputEnabled;
+    this.requestUserInputRegistrationEnabled = requestUserInputRegistrationEnabled;
+    this.emitThreadStarted = emitThreadStarted;
     this.stopCount = 0;
     /** @type {string[]} */
     this.methods = [];
+    /** @type {{method: string, params: any, timeoutMs: number | undefined}[]} */
+    this.requestCalls = [];
   }
 
   async start() {
@@ -614,8 +863,9 @@ class FakeSmokeClient extends EventEmitter {
     this.methods.push(method);
   }
 
-  async request(method, params) {
+  async request(method, params, options = {}) {
     this.methods.push(method);
+    this.requestCalls.push({ method, params, timeoutMs: options.timeoutMs });
     switch (method) {
       case "initialize":
         return { userAgent: "fixture" };
@@ -630,10 +880,29 @@ class FakeSmokeClient extends EventEmitter {
         return {
           config: {
             ...effectiveConfig(),
-            ...(this.unknownEnabledFeature
-              ? { features: { ...effectiveConfig().features, future_network_tool: true } }
-              : {}),
+            features: {
+              ...effectiveConfig().features,
+              ...(this.unknownEnabledFeature ? { future_network_tool: true } : {}),
+              ...(this.requestUserInputEnabled
+                ? { default_mode_request_user_input: true }
+                : {}),
+            },
           },
+          layers: [{
+            name: {
+              type: "user",
+              file: path.join(RUNTIME.runtime.codexHome, "config.toml"),
+              profile: null,
+            },
+            version: "fixture",
+            config: {
+              tools: {
+                experimental_request_user_input: {
+                  enabled: this.requestUserInputRegistrationEnabled,
+                },
+              },
+            },
+          }],
         };
       case "skills/list":
         return {
@@ -690,6 +959,12 @@ class FakeSmokeClient extends EventEmitter {
             tools: {
               [FIXTURE_MCP_READ_TOOL]: {
                 name: FIXTURE_MCP_READ_TOOL,
+                annotations: {
+                  readOnlyHint: true,
+                  destructiveHint: false,
+                  idempotentHint: true,
+                  openWorldHint: false,
+                },
                 inputSchema: {
                   type: "object",
                   properties: {
@@ -703,14 +978,18 @@ class FakeSmokeClient extends EventEmitter {
           }],
           nextCursor: null,
         };
-      case "thread/start":
-        return {
+      case "thread/start": {
+        const response = {
           thread: {
             id: "fixture-thread",
-            ephemeral: true,
+            ephemeral: false,
             cwd: RUNTIME.runtime.workDir,
             modelProvider: "openai",
-            path: null,
+            path: path.join(
+              RUNTIME.runtime.codexHome,
+              "sessions",
+              "fixture-thread.jsonl",
+            ),
           },
           model: "gpt-5.6-sol",
           modelProvider: "openai",
@@ -719,6 +998,14 @@ class FakeSmokeClient extends EventEmitter {
           cwd: RUNTIME.runtime.workDir,
           sandbox: { type: "readOnly", networkAccess: false },
         };
+        if (this.emitThreadStarted) {
+          this.emit("notification", {
+            method: "thread/started",
+            params: { thread: response.thread },
+          });
+        }
+        return response;
+      }
       case "account/login/cancel":
         return {};
       default:
@@ -745,6 +1032,7 @@ function dependencies(client, overrides = {}) {
     runTurn: async () => {
       throw new Error("runTurn override required for authenticated test");
     },
+    runLifecycle: async () => SUCCESSFUL_LIFECYCLE_PROOF,
     nowIso: () => "2026-07-27T00:00:00.000Z",
     ...overrides,
   };
@@ -759,6 +1047,7 @@ function effectiveConfig() {
     "browser_use_full_cdp_access",
     "code_mode_host",
     "computer_use",
+    "default_mode_request_user_input",
     "fast_mode",
     "goals",
     "guardian_approval",
@@ -830,6 +1119,7 @@ function effectiveConfig() {
         environment_id: "local",
         startup_timeout_sec: 5,
         tool_timeout_sec: 5,
+        default_tools_approval_mode: "approve",
         enabled_tools: [FIXTURE_MCP_READ_TOOL],
         disabled_tools: [],
       },

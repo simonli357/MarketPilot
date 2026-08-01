@@ -48,6 +48,12 @@ test("fixture MCP exposes one public read contract and denies every mutation sur
       required: ["fixtureId"],
       additionalProperties: false,
     });
+    assert.deepEqual(readTool.annotations, {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
 
     const result = await client.request("tools/call", {
       name: "research_read",

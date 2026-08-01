@@ -10,6 +10,7 @@ export const AUTOMATION_METHODS = new Set([
   "mcpServerStatus/list",
   "thread/start",
   "thread/resume",
+  "thread/unsubscribe",
   "turn/start",
   "turn/interrupt",
 ]);

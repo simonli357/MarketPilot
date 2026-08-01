@@ -30,6 +30,7 @@ import {
   renderHardenedConfig,
   sha256,
   sha256File,
+  validateRequestUserInputDisabledLayers,
 } from "./runtime-policy.mjs";
 import {
   QUALIFIED_LINUX_X64_BASELINE,
@@ -97,6 +98,7 @@ export async function runAutomatedCompatibilityProbe({
     fixtureMcpCommand: process.execPath,
     fixtureMcpArgs: Object.freeze([fixtureMcpPath]),
     fixtureMcpCwd: runtime.workDir,
+    configPath: path.join(runtime.codexHome, "config.toml"),
   });
   const enabledSkillPath = await stageCompatibilitySkill({
     sourceSkillPath,
@@ -205,7 +207,11 @@ export async function runAutomatedCompatibilityProbe({
   checks.push(
     check(
       "effective-config",
-      validateEffectiveConfig(inspection.config, effectiveConfigExpectation),
+      validateEffectiveConfig(inspection.config, effectiveConfigExpectation) &&
+        validateRequestUserInputDisabledLayers(
+          inspection.configLayers,
+          effectiveConfigExpectation.configPath,
+        ),
       "Effective config is Sol Ultra, never-approval, read-only, non-persistent, keyring/ChatGPT, and capability-disabled.",
     ),
   );
@@ -443,6 +449,17 @@ async function inspectAppServer({
         "effective Codex configuration does not match the hardened compatibility contract",
       );
     }
+    if (
+      !validateRequestUserInputDisabledLayers(
+        configEnvelope.layers,
+        effectiveConfigExpectation.configPath,
+      )
+    ) {
+      throw new CompatibilityProbeError(
+        "REQUEST_USER_INPUT_ENABLED",
+        "request-user-input registration is not disabled by the isolated user config layer",
+      );
+    }
 
     const [accountResult, modelsResult, skillsResult, mcpResult] = await Promise.all([
       client.request("account/read", { refreshToken: false }),
@@ -467,6 +484,7 @@ async function inspectAppServer({
 
     return {
       config: configEnvelope.config,
+      configLayers: configEnvelope.layers,
       account: accountResult,
       models: Array.isArray(modelsEnvelope.data) ? modelsEnvelope.data : [],
       skills: flattenSkills(skillsEnvelope.data),
@@ -485,7 +503,15 @@ async function inspectAppServer({
       error,
     );
   } finally {
-    await client.stop().catch(() => {});
+    try {
+      await client.stop();
+    } catch (error) {
+      throw new CompatibilityProbeError(
+        "APP_SERVER_CLEANUP_FAILED",
+        "app-server cleanup did not complete after compatibility inspection",
+        error,
+      );
+    }
   }
 }
 
@@ -497,7 +523,7 @@ function findModel(models, id) {
 
 /**
  * @param {unknown} value
- * @param {{fixtureMcpCommand: string, fixtureMcpArgs: readonly string[], fixtureMcpCwd: string}} expectation
+ * @param {{fixtureMcpCommand: string, fixtureMcpArgs: readonly string[], fixtureMcpCwd: string, configPath?: string}} expectation
  */
 export function validateEffectiveConfig(value, expectation) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -516,6 +542,7 @@ export function validateEffectiveConfig(value, expectation) {
     "browser_use_full_cdp_access",
     "code_mode_host",
     "computer_use",
+    "default_mode_request_user_input",
     "fast_mode",
     "goals",
     "guardian_approval",
@@ -605,6 +632,7 @@ export function validateEffectiveConfig(value, expectation) {
       "args",
       "command",
       "cwd",
+      "default_tools_approval_mode",
       "disabled_tools",
       "enabled",
       "enabled_tools",
@@ -627,6 +655,7 @@ export function validateEffectiveConfig(value, expectation) {
     fixtureMcp.environment_id === "local" &&
     fixtureMcp.startup_timeout_sec === 5 &&
     fixtureMcp.tool_timeout_sec === 5 &&
+    fixtureMcp.default_tools_approval_mode === "approve" &&
     exactStringArray(fixtureMcp.enabled_tools, [FIXTURE_MCP_READ_TOOL]) &&
     exactStringArray(fixtureMcp.disabled_tools, [])
   );
@@ -642,7 +671,9 @@ export function validateMcpInventory(servers, nextCursor) {
   const tool = server.tools[FIXTURE_MCP_READ_TOOL];
   if (!isRecord(tool)) return false;
   const inputSchema = tool.inputSchema;
+  const annotations = tool.annotations;
   if (!isRecord(inputSchema) || !isRecord(inputSchema.properties)) return false;
+  if (!isRecord(annotations)) return false;
   const fixtureId = inputSchema.properties.fixtureId;
   return (
     server.authStatus === "unsupported" &&
@@ -652,6 +683,16 @@ export function validateMcpInventory(servers, nextCursor) {
     server.resources.length === 0 &&
     Object.keys(server.tools).length === 1 &&
     tool.name === FIXTURE_MCP_READ_TOOL &&
+    hasExactKeys(annotations, [
+      "destructiveHint",
+      "idempotentHint",
+      "openWorldHint",
+      "readOnlyHint",
+    ]) &&
+    annotations.readOnlyHint === true &&
+    annotations.destructiveHint === false &&
+    annotations.idempotentHint === true &&
+    annotations.openWorldHint === false &&
     inputSchema.type === "object" &&
     inputSchema.additionalProperties === false &&
     Array.isArray(inputSchema.required) &&
