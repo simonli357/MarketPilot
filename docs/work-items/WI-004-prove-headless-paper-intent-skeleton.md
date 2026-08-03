@@ -45,11 +45,12 @@ A rights-safe fixture/public event traverses the real qualified Sol Ultra manage
 - WI-006 connects the real qualified manager and independent critic to that seam for accepted and rejected public-fixture paths.
 - WI-007 completes the thirty-scenario failure matrix and durable crash/restart idempotency proof.
 - WI-008 implements materiality scheduling, runs the two-hour soak, and prepares the manual accepted/rejected walkthrough.
-- WI-004 is a review gate, not an additional implementation batch: it closes only when the four slices collectively satisfy every criterion above.
+- WI-005 through WI-008 are delegated together as one sequential batch on one branch. The implementation agent validates, evidences, commits, and pushes each leaf checkpoint, promotes the next satisfied dependency without waiting for human review, and stops only at an explicit work-item blocker.
+- WI-004 is the single post-batch independent review gate, not an additional implementation batch: it closes only when the four slices collectively satisfy every criterion above.
 
 ## Evidence
 
-Not yet started. The implementation horizon is decomposed into WI-005 through WI-008; this gate waits for their reviewed evidence.
+Not yet started. The implementation horizon is decomposed into one WI-005-through-WI-008 batch; this gate waits for its completed checkpoint evidence and then owns independent review.
 
 ## Blocked Or Deferred
 

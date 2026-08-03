@@ -8,7 +8,7 @@ release: V1
 maturity: L1
 requirements: ["IR-001", "QR-002", "SFR-004", "BLK-agent-runtime-R005", "BLK-agent-runtime-R006"]
 depends_on: ["WI-006"]
-owner: unassigned
+owner: implementation-agent
 ---
 
 # Prove The Paper Failure And Durable Recovery Matrix
@@ -41,7 +41,7 @@ The paper-intent slice handles the complete thirty-scenario L1 matrix and surviv
 
 ## Evidence
 
-Not yet started; depends on WI-006 review.
+Not yet started; the batch advances here after WI-006 reaches validated completion and is checkpoint-pushed.
 
 ## Blocked Or Deferred
 

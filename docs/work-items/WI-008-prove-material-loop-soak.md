@@ -8,7 +8,7 @@ release: V1
 maturity: L1
 requirements: ["FR-002", "QR-002", "SFR-004", "BLK-agent-runtime-R005", "BLK-agent-runtime-R006"]
 depends_on: ["WI-007"]
-owner: unassigned
+owner: implementation-agent
 ---
 
 # Prove The Materiality Loop And L1 Soak
@@ -41,7 +41,7 @@ A three-minute fixture materiality loop coalesces changes while the manager is b
 
 ## Evidence
 
-Not yet started; depends on WI-007 review.
+Not yet started; the batch advances here after WI-007 reaches validated completion and is checkpoint-pushed.
 
 ## Blocked Or Deferred
 

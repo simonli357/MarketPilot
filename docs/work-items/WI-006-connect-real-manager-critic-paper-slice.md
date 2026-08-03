@@ -8,7 +8,7 @@ release: V1
 maturity: L1
 requirements: ["FR-002", "IR-001", "QR-002", "SFR-004", "BLK-agent-runtime-R004", "BLK-agent-runtime-R005", "BLK-agent-runtime-R006"]
 depends_on: ["WI-005"]
-owner: unassigned
+owner: implementation-agent
 ---
 
 # Connect The Real Manager And Critic To The Paper Authority
@@ -41,7 +41,7 @@ A fixed rights-safe public event traverses the real WI-001-qualified Sol Ultra m
 
 ## Evidence
 
-Not yet started; depends on WI-005 review.
+Not yet started; the batch advances here after WI-005 reaches validated completion and is checkpoint-pushed.
 
 ## Blocked Or Deferred
 
