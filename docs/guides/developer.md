@@ -1,6 +1,6 @@
 # Developer Guide
 
-The current L0 implementation is the isolated Codex app-server qualification harness. It contains no trading, broker, persistence-authority, or desktop UI implementation.
+The current L1 implementation is the isolated Codex app-server qualification harness plus a fixture-only paper authority/recovery proof. It contains no trading, broker, production SQLCipher store, or desktop UI implementation.
 
 ## Prerequisites
 
@@ -20,6 +20,10 @@ npm run codex:compatibility
 npm run check:paper-core
 npm run test:paper-core
 npm run audit:paper-core
+npm run test:paper-recovery
+npm run paper:recovery-matrix
+npm run paper:recovery-boundaries
+npm run paper:recovery-benchmark
 npm run paper:agent-hosted -- --help
 ```
 
@@ -46,6 +50,7 @@ If that reports no keyring session, opt into the one-time browser flow with `npm
 - `npm audit` checks the current npm dependency graph; evaluate and resolve findings rather than bypassing them.
 - `npm run check:paper-core` checks the local Draft 2020-12 registry, Node/Python golden parity, deterministic audit verification, and the focused Python suite.
 - `npm run paper:fixture -- --case accepted` and `npm run paper:fixture -- --case rejected` emit redaction-safe summaries only; the Python boundary never reads network or product state.
+- `npm run paper:recovery-matrix` executes exactly thirty deterministic named failure/recovery cases; `npm run paper:recovery-boundaries` injects a crash after every accepted durable boundary and reopens the fixture store; `npm run paper:recovery-benchmark` measures the reproducible 1,000-fixture Python gate with p95 under the 250 ms L1 budget.
 
 No CI, application build, package, migration, shared service, or release artifact exists yet. Those commands are introduced by their owning work items rather than predeclared here.
 
