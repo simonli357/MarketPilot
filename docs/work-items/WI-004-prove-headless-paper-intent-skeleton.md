@@ -1,13 +1,13 @@
 ---
 id: WI-004
 title: Prove the headless paper-intent walking skeleton
-type: feature
+type: gate
 status: proposed
 block: BLK-agent-runtime
 release: V1
 maturity: L1
 requirements: ["FR-002", "FR-006", "IR-001", "QR-002", "SFR-004", "BLK-agent-runtime-R004", "BLK-agent-runtime-R005", "BLK-agent-runtime-R006"]
-depends_on: ["WI-001"]
+depends_on: ["WI-005", "WI-006", "WI-007", "WI-008"]
 owner: unassigned
 ---
 
@@ -39,10 +39,18 @@ A rights-safe fixture/public event traverses the real qualified Sol Ultra manage
 - Iteration policy: Fix the smallest producer/consumer contract or state invariant exposed by a failing scenario, rerun that scenario, then the full matrix and soak.
 - Blocked stop condition: Stop for replan if the qualified app-server cannot reliably produce terminal typed artifacts or the cross-language boundary cannot preserve idempotent fail-closed state without changing the approved authority model.
 
+## Delivery Plan
+
+- WI-005 implements the canonical contracts and deterministic fixture-only Node-to-Python authority seam.
+- WI-006 connects the real qualified manager and independent critic to that seam for accepted and rejected public-fixture paths.
+- WI-007 completes the thirty-scenario failure matrix and durable crash/restart idempotency proof.
+- WI-008 implements materiality scheduling, runs the two-hour soak, and prepares the manual accepted/rejected walkthrough.
+- WI-004 is a review gate, not an additional implementation batch: it closes only when the four slices collectively satisfy every criterion above.
+
 ## Evidence
 
-Not yet started; depends on WI-001.
+Not yet started. The implementation horizon is decomposed into WI-005 through WI-008; this gate waits for their reviewed evidence.
 
 ## Blocked Or Deferred
 
-No additional blocker beyond WI-001.
+The gate intentionally remains proposed until WI-005 through WI-008 are done. Hosted-model availability remains an external readiness dependency and must fail closed.
