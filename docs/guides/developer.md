@@ -6,6 +6,7 @@ The current L0 implementation is the isolated Codex app-server qualification har
 
 - Ubuntu 24.04 x86_64. Other operating systems and architectures are outside the V1 qualification target.
 - Node.js 22; the reference validation host currently uses Node 22.22.2 and npm 10.9.7.
+- Python 3.12; the paper authority is dependency-free stdlib code and is invoked as `python3.12 -m marketpilot.paper_fixture_authority` through the bounded Node adapter.
 - A normal graphical user session with `XDG_RUNTIME_DIR`, Secret Service/keyring, and `/usr/bin/xdg-open` is required only for the opt-in authenticated smoke.
 - No container is accepted as evidence for app-server, keyring, browser-login, filesystem-mode, or runtime-storage behavior.
 
@@ -16,6 +17,9 @@ npm ci
 npm run project:check
 npm run test:codex
 npm run codex:compatibility
+npm run check:paper-core
+npm run test:paper-core
+npm run audit:paper-core
 ```
 
 `npm ci` installs the exact `@openai/codex` version and integrity recorded in `package-lock.json`. The compatibility command uses the packaged native executable, creates a private temporary `CODEX_HOME`, performs no login or model turn, emits a redacted report, and removes that runtime before returning.
@@ -39,6 +43,8 @@ If that reports no keyring session, opt into the one-time browser flow with `npm
 - `npm run codex:auth-smoke` prints the redacted authenticated checklist and automates the real turn, fresh-process resume, interrupt/recovery, and bounded-delegation checks. Exit code `0` means every check passed, `1` means failure, and `2` means the dedicated keyring session is absent because browser login was not requested.
 - `npm run project:check` validates canonical planning owners, active work, profile, release state, skills, and links.
 - `npm audit` checks the current npm dependency graph; evaluate and resolve findings rather than bypassing them.
+- `npm run check:paper-core` checks the local Draft 2020-12 registry, Node/Python golden parity, deterministic audit verification, and the focused Python suite.
+- `npm run paper:fixture -- --case accepted` and `npm run paper:fixture -- --case rejected` emit redaction-safe summaries only; the Python boundary never reads network or product state.
 
 No CI, application build, package, migration, shared service, or release artifact exists yet. Those commands are introduced by their owning work items rather than predeclared here.
 

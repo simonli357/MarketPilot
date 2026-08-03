@@ -26,6 +26,18 @@ npm run codex:compatibility
 npm audit
 ```
 
+## Paper-Intent Authority Validation
+
+```bash
+npm run check:paper-core
+npm run test:paper-core
+npm run audit:paper-core
+npm run paper:fixture -- --case accepted
+npm run paper:fixture -- --case rejected
+```
+
+The fixture commands use only the committed synthetic `PUBLIC_OFFICIAL` MPTEST event. They do not contact a broker, read account or licensed-data state, or arm live trading.
+
 ## Opt-In Authenticated Smoke
 
 ```bash

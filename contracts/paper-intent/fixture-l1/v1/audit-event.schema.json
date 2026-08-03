@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:audit-event",
+  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "required": ["schemaVersion", "profile", "policyId", "artifactType", "auditId", "auditEventId", "sequence", "occurredAt", "eventType", "subjectType", "subjectId", "subjectHash", "previousEventHash", "eventHash"],
+  "properties": {"schemaVersion": {"const": 1}, "profile": {"const": "marketpilot.paper-intent-fixture.v1"}, "policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"}, "artifactType": {"const": "AuditEvent"}, "auditId": {"type": "string", "pattern": "^audit_[a-z0-9_]{2,63}$"}, "auditEventId": {"type": "string", "pattern": "^ae_[a-z0-9_]{2,63}$"}, "sequence": {"type": "integer", "minimum": 1, "maximum": 64}, "occurredAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"}, "eventType": {"enum": ["INPUT_RESEARCH_RECORDED", "INPUT_CANDIDATE_RECORDED", "INPUT_INTENT_RECORDED", "INPUT_CRITIC_RECORDED", "GATE_DECIDED", "ORDER_PLANNED", "EXECUTION_SIMULATED"]}, "subjectType": {"enum": ["ResearchEvent", "CandidateManifest", "TradeIntent", "CriticVerdict", "GateDecision", "OrderPlan", "ExecutionEvent"]}, "subjectId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$"}, "subjectHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "previousEventHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "eventHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+  ,"allOf": [
+    {"if": {"properties": {"eventType": {"const": "INPUT_RESEARCH_RECORDED"}}}, "then": {"properties": {"subjectType": {"const": "ResearchEvent"}}}},
+    {"if": {"properties": {"eventType": {"const": "INPUT_CANDIDATE_RECORDED"}}}, "then": {"properties": {"subjectType": {"const": "CandidateManifest"}}}},
+    {"if": {"properties": {"eventType": {"const": "INPUT_INTENT_RECORDED"}}}, "then": {"properties": {"subjectType": {"const": "TradeIntent"}}}},
+    {"if": {"properties": {"eventType": {"const": "INPUT_CRITIC_RECORDED"}}}, "then": {"properties": {"subjectType": {"const": "CriticVerdict"}}}},
+    {"if": {"properties": {"eventType": {"const": "GATE_DECIDED"}}}, "then": {"properties": {"subjectType": {"const": "GateDecision"}}}},
+    {"if": {"properties": {"eventType": {"const": "ORDER_PLANNED"}}}, "then": {"properties": {"subjectType": {"const": "OrderPlan"}}}},
+    {"if": {"properties": {"eventType": {"const": "EXECUTION_SIMULATED"}}}, "then": {"properties": {"subjectType": {"const": "ExecutionEvent"}}}}
+  ]
+}

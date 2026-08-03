@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:critic-verdict",
+  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "required": ["schemaVersion", "profile", "artifactType", "verdictId", "verdictHash", "producer", "operationId", "createdAt", "expiresAt", "candidateId", "candidateHash", "intentId", "intentHash", "eventId", "eventHash", "verdict", "reasonCode", "counterargument", "evidenceFactIds"],
+  "properties": {
+    "schemaVersion": {"const": 1}, "profile": {"const": "marketpilot.paper-intent-fixture.v1"}, "artifactType": {"const": "CriticVerdict"}, "verdictId": {"type": "string", "pattern": "^cv_[a-z0-9_]{2,63}$"}, "verdictHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "producer": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:producer"}, "operationId": {"type": "string", "pattern": "^op_[a-z0-9_]{2,63}$"}, "createdAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"}, "expiresAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"}, "candidateId": {"type": "string", "pattern": "^cand_[a-z0-9_]{2,63}$"}, "candidateHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "intentId": {"type": "string", "pattern": "^ti_[a-z0-9_]{2,63}$"}, "intentHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "eventId": {"type": "string", "pattern": "^re_[a-z0-9_]{2,63}$"}, "eventHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "verdict": {"enum": ["APPROVE", "REJECT", "ABSTAIN"]}, "reasonCode": {"enum": ["NO_BLOCKING_ISSUE", "EVIDENCE_GAP", "THESIS_CONTRADICTION", "FIXTURE_POLICY_CONCERN", "INSUFFICIENT_EVIDENCE"]}, "counterargument": {"type": "string", "minLength": 1, "maxLength": 1024}, "evidenceFactIds": {"type": "array", "maxItems": 16, "items": {"type": "string", "pattern": "^fact_[a-z0-9_]{2,63}$"}}
+  },
+  "allOf": [
+    {"if": {"properties": {"verdict": {"const": "APPROVE"}}}, "then": {"properties": {"reasonCode": {"const": "NO_BLOCKING_ISSUE"}}}},
+    {"if": {"properties": {"verdict": {"const": "REJECT"}}}, "then": {"properties": {"reasonCode": {"enum": ["EVIDENCE_GAP", "THESIS_CONTRADICTION", "FIXTURE_POLICY_CONCERN"]}}}},
+    {"if": {"properties": {"verdict": {"const": "ABSTAIN"}}}, "then": {"properties": {"reasonCode": {"const": "INSUFFICIENT_EVIDENCE"}}}}
+  ]
+}

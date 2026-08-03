@@ -9,6 +9,6 @@ Generated from canonical project state. Do not append history.
 - Required-block maturity: BLK-agent-runtime:L0, BLK-market-intelligence:L0, BLK-strategy-evaluation:L0, BLK-broker-execution:L0, BLK-operator-desktop:L0, BLK-secure-runtime:L0
 - Release target: V1
 - Release decision: no-go
-- Next action: start WI-005: Implement the paper-intent contract and authority seam
+- Next action: start WI-002: Prove full-event vendor rights, cost, coverage, and latency
 - Blockers: WI-003
 - Last release validation: none recorded

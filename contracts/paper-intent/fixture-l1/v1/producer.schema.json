@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:producer",
+  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "required": ["kind", "runId"],
+  "properties": {"kind": {"enum": ["FIXTURE_SOURCE", "FIXTURE_REGISTRY", "MANAGER", "CRITIC", "PYTHON_AUTHORITY"]}, "runId": {"type": "string", "pattern": "^run_[a-z0-9_]{2,63}$"}}
+}

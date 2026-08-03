@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:primitives",
+  "type": "object",
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "UtcTimestamp": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"},
+    "UsdPrice": {"type": "string", "pattern": "^(?!0\\.0000$)(?:0\\.[0-9]{4}|[1-9][0-9]{0,5}\\.[0-9]{4})$"},
+    "ShareQuantity": {"type": "string", "pattern": "^(?!0\\.000000$)(?:0\\.[0-9]{6}|[1-9][0-9]{0,5}\\.[0-9]{6}|1000000\\.000000)$"},
+    "UnsignedUsdAmount": {"type": "string", "pattern": "^(?:0|[1-9][0-9]{0,8})\\.[0-9]{2}$"},
+    "Ratio": {"type": "string", "pattern": "^(?:0\\.[0-9]{6}|1\\.000000)$"},
+    "Text": {"type": "string", "pattern": "^(?!.*[\\u0000-\\u001f\\u007f-\\u009f])[\\s\\S]{1,1024}$"},
+    "Hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "OpaqueId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$"},
+    "InstrumentId": {"type": "string", "pattern": "^[A-Z][A-Z0-9.]{0,9}$"},
+    "Currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "SourceId": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{2,63}$"},
+    "SourceRevision": {"type": "string", "pattern": "^[\\x21-\\x7e]{1,128}$"}
+  }
+}

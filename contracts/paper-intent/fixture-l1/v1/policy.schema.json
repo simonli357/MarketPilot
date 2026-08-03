@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:policy",
+  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "required": ["policyId", "allowedAction", "side", "session", "maxQuantity", "maxGrossNotionalUsd", "buyCollarRatio"],
+  "properties": {"policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"}, "allowedAction": {"const": "OPEN_LONG"}, "side": {"const": "BUY"}, "session": {"const": "REGULAR"}, "maxQuantity": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{6}$"}, "maxGrossNotionalUsd": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$"}, "buyCollarRatio": {"type": "string", "pattern": "^(0|1)\\.[0-9]{6}$"}}
+}
