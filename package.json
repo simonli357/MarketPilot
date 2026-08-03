@@ -10,6 +10,7 @@
     "codex:auth-smoke": "node scripts/codex-authenticated-smoke.mjs",
     "codex:compatibility": "node scripts/codex-compatibility.mjs",
     "paper:fixture": "node scripts/paper-fixture.mjs",
+    "paper:agent-hosted": "node scripts/paper-agent-hosted.mjs",
     "check:paper-core": "node scripts/paper-core-check.mjs",
     "test:paper-core": "node --test test/paper/*.test.mjs",
     "audit:paper-core": "node scripts/paper-core-audit.mjs",

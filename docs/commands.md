@@ -34,9 +34,17 @@ npm run test:paper-core
 npm run audit:paper-core
 npm run paper:fixture -- --case accepted
 npm run paper:fixture -- --case rejected
+npm run paper:agent-hosted -- --help
 ```
 
 The fixture commands use only the committed synthetic `PUBLIC_OFFICIAL` MPTEST event. They do not contact a broker, read account or licensed-data state, or arm live trading.
+
+The opt-in hosted paper-agent command runs the real keyring-backed Sol Ultra manager and independent critic against the same fixture. It accepts only `--login` (for the existing browser/keyring flow), prints redacted IDs/hashes, and fails closed on any auth, entitlement, reroute, tool, schema, process, or authority error:
+
+```bash
+npm run paper:agent-hosted
+npm run paper:agent-hosted -- --login
+```
 
 ## Opt-In Authenticated Smoke
 

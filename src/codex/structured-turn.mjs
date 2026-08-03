@@ -99,6 +99,7 @@ export function isStructuredTurnClientQuarantined(client) {
  *   item: Readonly<Record<string, unknown>>
  * }>) => boolean | void} [options.validateMcpCompletion] Synchronous, per-completed-call validator.
  * @param {(notification: Readonly<{method: string, params: Readonly<Record<string, unknown>>}>) => boolean | void} [options.validateForeignTurnNotification] Synchronous validator for multiplexed non-primary turn lifecycle.
+ * @param {boolean} [options.forbidDelegation] Reject all collaboration/delegation items for this role.
  * @param {() => Promise<void>} [options.awaitAdditionalEvidence] Arms an
  * asynchronous acceptance gate before turn/start. The gate must settle before
  * the owned connection is stopped and shares this turn's absolute deadline.
@@ -122,6 +123,7 @@ export async function runStructuredTurn({
   requiredMcpTools = new Set(),
   validateMcpCompletion,
   validateForeignTurnNotification,
+  forbidDelegation = false,
   awaitAdditionalEvidence,
 }) {
   assertClient(client);
@@ -144,6 +146,7 @@ export async function runStructuredTurn({
   ) {
     throw new TypeError("validateForeignTurnNotification must be a function");
   }
+  if (typeof forbidDelegation !== "boolean") throw new TypeError("forbidDelegation must be boolean");
   if (
     awaitAdditionalEvidence !== undefined &&
     typeof awaitAdditionalEvidence !== "function"
@@ -478,6 +481,7 @@ export async function runStructuredTurn({
         delegatedAgentIds,
         v2StartedAgentIds,
         completed: method === "item/completed",
+        forbidDelegation,
       });
       if (method === "item/started") {
         startedItemIds.add(itemId);
@@ -883,6 +887,7 @@ function sha256Text(value) {
  *   delegatedAgentIds: Set<string>,
  *   v2StartedAgentIds: Set<string>,
  *   completed: boolean,
+ *   forbidDelegation?: boolean,
  *   terminalReplay?: boolean
  * }} context
  */
@@ -894,6 +899,13 @@ function validateItem(item, allowedMcpTools, context) {
       "ITEM_FORBIDDEN",
       "App-server emitted a forbidden or malformed item type",
       { kind: "policy", cause },
+    );
+  }
+  if (context.forbidDelegation === true && (item.type === "collabAgentToolCall" || item.type === "subAgentActivity")) {
+    throw new StructuredTurnError(
+      "DELEGATION_FORBIDDEN",
+      "This role cannot delegate or accept delegated activity",
+      { kind: "policy" },
     );
   }
   if (item.type === "mcpToolCall") {

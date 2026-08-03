@@ -731,12 +731,19 @@ export async function runAuthenticatedSmoke({
  * this directory is intentionally not randomized or deleted: Codex keyring
  * identity may be derived from the stable CODEX_HOME path.
  *
- * @param {{projectRoot: string, sourceEnv?: NodeJS.ProcessEnv}} options
+ * @param {{projectRoot: string, sourceEnv?: NodeJS.ProcessEnv, skillName?: string}} options
  */
 export async function prepareAuthenticatedSmokeRuntime({
   projectRoot,
   sourceEnv = process.env,
+  skillName = "marketpilot-compatibility",
 }) {
+  if (!["marketpilot-compatibility", "marketpilot-paper"].includes(skillName)) {
+    throw new AuthenticatedSmokeError(
+      "INVALID_SKILL_NAME",
+      "Authenticated runtime skill name is outside the app-owned allowlist",
+    );
+  }
   const xdgRuntimeDir = await validateSecretServiceRouting(sourceEnv);
   const baseDir = path.join(xdgRuntimeDir, AUTHENTICATED_SMOKE_BASE_NAME);
   await createPrivateDirectory(baseDir);
@@ -755,14 +762,14 @@ export async function prepareAuthenticatedSmokeRuntime({
       "runtime",
       "codex",
       "skills",
-      "marketpilot-compatibility",
+      skillName,
       "SKILL.md",
     );
     await requireRegularFile(fixtureMcpPath, "fixture MCP server");
     await requireRegularFile(sourceSkillPath, "compatibility skill");
 
     const skillsDir = await createPrivateDirectory(path.join(runtime.codexHome, "skills"));
-    const skillDir = await createPrivateDirectory(path.join(skillsDir, "marketpilot-compatibility"));
+    const skillDir = await createPrivateDirectory(path.join(skillsDir, skillName));
     const enabledSkillPath = path.join(skillDir, "SKILL.md");
     await writePrivateFile(enabledSkillPath, await readFile(sourceSkillPath));
 
@@ -1212,6 +1219,7 @@ function request(client, method, params, timeoutMs, signal, operatorInitiated = 
  * @param {string} fixtureMcpPath
  * @param {number} timeoutMs
  * @param {AbortSignal | undefined} signal
+ * @param {string} [expectedSkillName]
  */
 async function readRuntimeInventory(
   client,
@@ -1220,6 +1228,7 @@ async function readRuntimeInventory(
   fixtureMcpPath,
   timeoutMs,
   signal,
+  expectedSkillName = "marketpilot-compatibility",
 ) {
   const configResult = await request(
     client,
@@ -1276,12 +1285,12 @@ async function readRuntimeInventory(
     throw new AuthenticatedSmokeError("SKILL_INVENTORY_INVALID", "skills/list reported errors");
   }
   const approved = enabledSkills.filter((skill) =>
-    skill?.name === "marketpilot-compatibility" && skill?.path === enabledSkillPath,
+    skill?.name === expectedSkillName && skill?.path === enabledSkillPath,
   );
   if (approved.length !== 1) {
     throw new AuthenticatedSmokeError(
       "SKILL_INVENTORY_INVALID",
-      "The required compatibility skill is not the one exact enabled app skill",
+      "The required app skill is not the one exact enabled app skill",
     );
   }
   const unexpected = enabledSkills.filter((skill) => !approved.includes(skill));
@@ -1816,7 +1825,7 @@ function matchesPublicFixture(value) {
 }
 
 /** @param {NodeJS.ProcessEnv} sourceEnv */
-function assertNoApiTokenEnvironment(sourceEnv) {
+export function assertNoApiTokenEnvironment(sourceEnv) {
   for (const [key, value] of Object.entries(sourceEnv)) {
     const explicitlyForbidden = TOKEN_ENVIRONMENT_KEYS.includes(key);
     const tokenShaped = /^(?:CHATGPT|CODEX|OPENAI)_.*(?:API_KEY|TOKEN)$/u.test(key);

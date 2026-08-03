@@ -20,6 +20,7 @@ npm run codex:compatibility
 npm run check:paper-core
 npm run test:paper-core
 npm run audit:paper-core
+npm run paper:agent-hosted -- --help
 ```
 
 `npm ci` installs the exact `@openai/codex` version and integrity recorded in `package-lock.json`. The compatibility command uses the packaged native executable, creates a private temporary `CODEX_HOME`, performs no login or model turn, emits a redacted report, and removes that runtime before returning.
@@ -47,6 +48,8 @@ If that reports no keyring session, opt into the one-time browser flow with `npm
 - `npm run paper:fixture -- --case accepted` and `npm run paper:fixture -- --case rejected` emit redaction-safe summaries only; the Python boundary never reads network or product state.
 
 No CI, application build, package, migration, shared service, or release artifact exists yet. Those commands are introduced by their owning work items rather than predeclared here.
+
+The hosted paper-agent command is opt-in and fixture-only. It launches two fresh ephemeral physical app-server sessions, verifies the ChatGPT/keyring Sol Ultra runtime, and reports only redacted artifact IDs/hashes. It must not be used with custom prompts, symbols, accounts, broker data, or API tokens.
 
 ## Troubleshooting
 

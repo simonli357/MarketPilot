@@ -298,6 +298,12 @@ test("accepts pinned V2 atomic delegation with an empty-evidence wait item", asy
   assert.equal(result.status, "completed");
 });
 
+test("forbidDelegation rejects a collaboration item before any critic artifact can be accepted", async (context) => {
+  const harness = await startHarness(context, "bounded-delegation-success");
+  await expectCode(runFixtureTurn(harness, { forbidDelegation: true }), "DELEGATION_FORBIDDEN");
+  assert.equal(isStructuredTurnClientQuarantined(harness.client), true);
+});
+
 test("multiplexed child lifecycle is rejected unless an exact synchronous validator owns it", async (context) => {
   const rejected = await startHarness(context, "foreign-child-lifecycle");
   await expectCode(runFixtureTurn(rejected), "THREAD_ID_MISMATCH");
@@ -690,6 +696,7 @@ async function startHarness(context, scenario, clientOptions = {}) {
  *   validateMcpCompletion?: (evidence: any) => boolean | void,
  *   validateForeignTurnNotification?: (notification: any) => boolean | void,
  *   awaitAdditionalEvidence?: () => Promise<void>,
+ *   forbidDelegation?: boolean,
  *   parseFinal?: (text: string) => unknown,
  *   signal?: AbortSignal
  * }} [options]
@@ -708,6 +715,7 @@ function runFixtureTurn(harness, options = {}) {
     validateMcpCompletion: options.validateMcpCompletion,
     validateForeignTurnNotification: options.validateForeignTurnNotification,
     awaitAdditionalEvidence: options.awaitAdditionalEvidence,
+    forbidDelegation: options.forbidDelegation ?? false,
   });
 }
 
