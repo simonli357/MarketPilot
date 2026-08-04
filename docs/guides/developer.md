@@ -24,6 +24,7 @@ npm run test:paper-recovery
 npm run paper:recovery-matrix
 npm run paper:recovery-boundaries
 npm run paper:recovery-benchmark
+npm run test:materiality
 npm run paper:agent-hosted -- --help
 ```
 
@@ -51,6 +52,7 @@ If that reports no keyring session, opt into the one-time browser flow with `npm
 - `npm run check:paper-core` checks the local Draft 2020-12 registry, Node/Python golden parity, deterministic audit verification, and the focused Python suite.
 - `npm run paper:fixture -- --case accepted` and `npm run paper:fixture -- --case rejected` emit redaction-safe summaries only; the Python boundary never reads network or product state.
 - `npm run paper:recovery-matrix` executes exactly thirty deterministic named failure/recovery cases; `npm run paper:recovery-boundaries` injects a crash after every accepted durable boundary and reopens the fixture store; `npm run paper:recovery-benchmark` measures the reproducible 1,000-fixture Python gate with p95 under the 250 ms L1 budget.
+- `npm run test:materiality` covers the three-minute lease/coalescing/circuit transitions and restart/tamper guards. Normal scheduler construction routes through the Python authority; the explicit callback factory is test-only. `npm run paper:soak` is the required uninterrupted two-hour real-clock fixture soak and has no shortened-run option; it reports workload, latency, ephemeral database growth, process resource use, authority audit identities, incidents, and threshold violations. The redaction-safe report is also written to ignored `artifacts/work/wi-008-soak-report.json`.
 
 No CI, application build, package, migration, shared service, or release artifact exists yet. Those commands are introduced by their owning work items rather than predeclared here.
 

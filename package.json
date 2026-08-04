@@ -18,6 +18,8 @@
     "paper:recovery-boundaries": "PYTHONPATH=src python3 -m marketpilot.paper_fixture_recovery --recovery",
     "paper:recovery-benchmark": "PYTHONPATH=src python3 -m marketpilot.paper_fixture_recovery --benchmark",
     "test:paper-recovery": "PYTHONPATH=src python3 -m unittest discover -s test/paper_python -p 'test_recovery.py'",
+    "paper:soak": "PYTHONPATH=src python3 -m marketpilot.materiality_loop --soak",
+    "test:materiality": "PYTHONPATH=src python3 -m unittest discover -s test/paper_python -p 'test_materiality.py'",
     "project:check": "node scripts/project-check.mjs",
     "project:status": "node scripts/project-status.mjs",
     "project:skills": "node scripts/project-sync-skills.mjs",
