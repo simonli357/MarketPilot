@@ -50,7 +50,7 @@ At L3, use `$production-hardening` and an independent adversarial review. Stable
 | Licensed event arrival | Live vendor trial over at least three US trading days | Establish in WI-002 | Source-to-API p95 at most 60–90 seconds and enough remaining budget for a three-minute decision cycle. | p95 above 90 seconds or unobservable corrections/replay. |
 | Deterministic gate | 1,000 mixed accept/reject fixtures on reference host | Establish at L1 | p95 below 250 ms excluding broker I/O. | More than 25% slower or any invariant difference. |
 | Agent runtime | Material turns using pinned Sol Ultra and required MCP | Establish in WI-001/WI-004 | No overlap; bounded deadline; timeout visibly abstains and preserves queued deltas. | Any unauthorized tool, unbounded turn, lost delta, or silent model/effort downgrade. |
-| Recovery | Crash each local process at every durable boundary during a two-hour soak | Establish at L1 | Zero duplicate intents/orders and exact reconciliation before readiness. | Any duplicate, false-safe state, or unreconciled ledger gap. |
+| Recovery | Parameterized real-process crash campaign at every durable state, plus a separate uninterrupted two-hour zero-incident soak | Establish at L1 | Crash cases produce zero duplicate intents/plans/executions and exact reconciliation before readiness; the soak completes every cadence without injected interruption. | Any duplicate, false-safe state, unreconciled gap, soak incident, or missed cadence. |
 
 ## Strategy Qualification Policy
 

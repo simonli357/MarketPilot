@@ -1,6 +1,6 @@
 # Developer Guide
 
-The current L1 implementation is the isolated Codex app-server qualification harness plus a fixture-only paper authority/recovery proof. It contains no trading, broker, production SQLCipher store, or desktop UI implementation.
+The current L1 candidate implementation is the isolated Codex app-server qualification harness plus a fixture-only paper authority/recovery harness under corrective review. It contains no trading, broker, production SQLCipher store, or desktop UI implementation.
 
 ## Prerequisites
 
@@ -51,12 +51,12 @@ If that reports no keyring session, opt into the one-time browser flow with `npm
 - `npm audit` checks the current npm dependency graph; evaluate and resolve findings rather than bypassing them.
 - `npm run check:paper-core` checks the local Draft 2020-12 registry, Node/Python golden parity, deterministic audit verification, and the focused Python suite.
 - `npm run paper:fixture -- --case accepted` and `npm run paper:fixture -- --case rejected` emit redaction-safe summaries only; the Python boundary never reads network or product state.
-- `npm run paper:recovery-matrix` executes exactly thirty deterministic named failure/recovery cases; `npm run paper:recovery-boundaries` injects a crash after every accepted durable boundary and reopens the fixture store; `npm run paper:recovery-benchmark` measures the reproducible 1,000-fixture Python gate with p95 under the 250 ms L1 budget.
-- `npm run test:materiality` covers the three-minute lease/coalescing/circuit transitions and restart/tamper guards. Normal scheduler construction routes through the Python authority; the explicit callback factory is test-only. `npm run paper:soak` is the required uninterrupted two-hour real-clock fixture soak and has no shortened-run option; it reports workload, latency, ephemeral database growth, process resource use, authority audit identities, incidents, and threshold violations. The redaction-safe report is also written to ignored `artifacts/work/wi-008-soak-report.json`.
+- `npm run paper:recovery-matrix` exposes the candidate thirty-case corpus; `npm run paper:recovery-boundaries` injects the current crash hooks and reopens the fixture store; `npm run paper:recovery-benchmark` measures a reproducible 1,000-fixture Python gate against the 250 ms L1 budget. These diagnostics do not supersede WI-007's real-path, atomic-claim, distinct-boundary, non-replay, and zero-error criteria.
+- `npm run test:materiality` exercises the candidate three-minute lease/coalescing/circuit transitions and restart/tamper guards. The current candidate calls the Python authority directly; WI-008 requires the normal path to consume WI-007's durable verified result, while the explicit callback factory remains test-only. `npm run paper:soak` has no shortened-run option and writes workload, latency, ephemeral database growth, process resource use, authority identity, incident, and threshold data to ignored `artifacts/work/wi-008-soak-report.json`. WI-008 remains open until the durable mapping, persisted history, fixed-workload pass predicate, fresh two-hour local-authority run, and separate semantic hosted walkthrough all pass.
 
 No CI, application build, package, migration, shared service, or release artifact exists yet. Those commands are introduced by their owning work items rather than predeclared here.
 
-The hosted paper-agent command is opt-in and fixture-only. It launches two fresh ephemeral physical app-server sessions, verifies the ChatGPT/keyring Sol Ultra runtime, and reports only redacted artifact IDs/hashes. It must not be used with custom prompts, symbols, accounts, broker data, or API tokens.
+The hosted paper-agent command is opt-in and fixture-only. The current candidate launches two fresh ephemeral physical app-server sessions and verifies the ChatGPT/keyring Sol Ultra runtime, but WI-006 remains open for semantic-draft, role-inventory, evidence-retention, and cleanup gating. It must not be used with custom prompts, symbols, accounts, broker data, or API tokens.
 
 ## Troubleshooting
 
