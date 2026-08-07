@@ -1,0 +1,31 @@
+{
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:manager-semantic-draft",
+  "type": "object",
+  "required": ["disposition", "proposal", "abstainReasonCode", "thesis", "evidenceFactIds"],
+  "properties": {
+    "disposition": {"enum": ["PROPOSE", "ABSTAIN"]},
+    "proposal": {"anyOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:trade-intent#/$defs/Proposal"}]},
+    "abstainReasonCode": {"enum": ["INSUFFICIENT_EVIDENCE", "NO_SUPPORTED_ACTION", "UNSAFE_CONTEXT", null]},
+    "thesis": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Text"},
+    "evidenceFactIds": {"type": "array", "maxItems": 16, "items": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/FactId"}, "mpSortedUniqueBy": "$value"}
+  },
+  "$defs": {
+    "BranchFields": {
+      "type": "object",
+      "properties": {
+        "disposition": true,
+        "proposal": true,
+        "abstainReasonCode": true,
+        "thesis": true,
+        "evidenceFactIds": true
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"disposition": {"const": "PROPOSE"}}, "required": ["disposition"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"proposal": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:trade-intent#/$defs/Proposal"}, "abstainReasonCode": {"type": "null"}, "evidenceFactIds": {"minItems": 1}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"disposition": {"const": "ABSTAIN"}}, "required": ["disposition"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"proposal": {"type": "null"}, "abstainReasonCode": {"enum": ["INSUFFICIENT_EVIDENCE", "NO_SUPPORTED_ACTION", "UNSAFE_CONTEXT"]}, "evidenceFactIds": {"minItems": 0}}, "unevaluatedProperties": false}}
+  ],
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}

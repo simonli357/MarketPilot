@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "sha256",
+  "files": {
+    "app-incident-event.schema.json": "37fe0d8d966fb76503c393479bec6b5e8dc31a9093ac01e45bc32b09f4e1d2ee",
+    "audit-event.schema.json": "57c0acccdecf29d0f52fe191952a1d9a6a7629eb94ed8681cf530b42b1ba1329",
+    "authority-request.schema.json": "98c309b275a29d2d7ee0db7a7bc26eeb4bf934c50c671dcef57625b8e719973b",
+    "authority-response.schema.json": "8756aebd9e89fe3f7ed6692262e445795cbfe79e06a773d410bbe8a78b4fbd82",
+    "candidate-manifest.schema.json": "e710b5fe16721a2983109a376aefde675abc57aad8dfdece64a15b07a0a7dcfb",
+    "critic-semantic-draft.schema.json": "1866578e85c0c64bfe25d30f96512b4191224f57c4c1b3833d864957d4aa702f",
+    "critic-verdict.schema.json": "476d926842affda20ad46d30f3500e497be794c7b12009d17388a9c4983466e8",
+    "custom-vocabulary-vectors.json": "5858e79c7074d9a7834cbfecb7b73feb00646dd32e393f067638916f35d21610",
+    "execution-event.schema.json": "18b4e0c1724bc4ddf02a65d79a2a9d9435a55b978e2958db93014b12c115daab",
+    "fact.schema.json": "4f14273e6989f60974194b85bc61f4decc8ba42af8e2e052904c9d93767dedfa",
+    "fixture-meta.schema.json": "adbfa1f2f4afbb05794c3008b6ab45497a1f52494b3118dae1b17474105e07db",
+    "gate-decision.schema.json": "f185cd71d4ba6cfca363d1b0240ba7de301068127459a391356d9890729b31e1",
+    "manager-semantic-draft.schema.json": "cf281582d183210ddb32eceb1be1a1ac68ba2ae3c3058cd734ac7db4e1993a4d",
+    "order-plan.schema.json": "804c77c15f9e15d193600b77d4764553d2502e2f2fbad99f3ab7cba745d81831",
+    "policy.schema.json": "5237f40b1cc1afb089273b9d1338372f503dca8aec8e333ae41101abd849b6eb",
+    "primitives.schema.json": "884e39c002ecceb56d9a6902ad90d646cc0689036e3ab7f57455706030ec501b",
+    "producer.schema.json": "d7bfa458b078932ad38a1f42f1ba9810f19ca8b281645c95f45ecc3bbb92027e",
+    "protocol-error.schema.json": "0c139ac8d3bc5dd3aa54e8e4e2ff6d069d61a2b99e248500845c66e9ffe4c31a",
+    "provenance.schema.json": "0c8ccc2eac9e2a390adfcdbb5397845f1d3354b73ff41560cfa864246c96c813",
+    "registry.json": "bec25456e1214d8e6f82cda6fa1a06b99c8483721c66e99c99d5a32d8b0e3d6e",
+    "research-event.schema.json": "f07a291fef6080ccdb3f7cb7f00c2846c781b66de8a4b7c63ebe7917aee72e7c",
+    "trade-intent.schema.json": "6a8aeaceaff8112a58c653d88d87e37f5e77a24b97b9d1815dd4be00ea4862b4"
+  }
+}

@@ -1,11 +1,31 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
   "$id": "urn:marketpilot:paper-intent-fixture:v1:fact",
-  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "type": "object",
   "required": ["factId", "kind", "value", "rightsClass", "provenanceId"],
-  "properties": {"factId": {"type": "string", "pattern": "^fact_[a-z0-9_]{2,63}$"}, "kind": {"enum": ["NOTICE_TEXT", "REFERENCE_PRICE_USD", "ASK_PRICE_USD"]}, "value": {"type": "string", "minLength": 1, "maxLength": 1024}, "rightsClass": {"enum": ["PUBLIC_OFFICIAL", "LICENSED_MODEL_OK", "LOCAL_RESTRICTED"]}, "provenanceId": {"type": "string", "pattern": "^prov_[a-z0-9_]{2,63}$"}}
-  ,"allOf": [
-    {"if": {"properties": {"kind": {"const": "NOTICE_TEXT"}}}, "then": {"properties": {"value": {"minLength": 1, "maxLength": 1024}}}},
-    {"if": {"properties": {"kind": {"enum": ["REFERENCE_PRICE_USD", "ASK_PRICE_USD"]}}}, "then": {"properties": {"value": {"pattern": "^(0|[1-9][0-9]*)\\.[0-9]{4}$"}}}}
-  ]
+  "properties": {
+    "factId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/FactId"},
+    "kind": {"enum": ["NOTICE_TEXT", "REFERENCE_PRICE_USD", "ASK_PRICE_USD"]},
+    "value": {"type": "string"},
+    "rightsClass": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/RightsClass"},
+    "provenanceId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/ProvenanceId"}
+  },
+  "$defs": {
+    "BranchFields": {
+      "type": "object",
+      "properties": {
+        "factId": true,
+        "kind": true,
+        "value": true,
+        "rightsClass": true,
+        "provenanceId": true
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"kind": {"const": "NOTICE_TEXT"}}, "required": ["kind"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"value": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Text"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"kind": {"enum": ["REFERENCE_PRICE_USD", "ASK_PRICE_USD"]}}, "required": ["kind"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"value": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/UsdPrice"}}, "unevaluatedProperties": false}}
+  ],
+  "additionalProperties": false,
+  "unevaluatedProperties": false
 }

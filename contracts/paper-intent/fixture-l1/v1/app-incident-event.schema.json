@@ -1,0 +1,62 @@
+{
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
+  "$id": "urn:marketpilot:paper-intent-fixture:v1:app-incident-event",
+  "type": "object",
+  "required": ["schemaVersion", "profile", "artifactType", "incidentId", "incidentHash", "scopeType", "scopeId", "sequence", "occurredAt", "boundary", "code", "exposureEffect", "subjectHash", "previousIncidentHash"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "profile": {"const": "marketpilot.paper-intent-fixture.v1"},
+    "artifactType": {"const": "AppIncidentEvent"},
+    "incidentId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/IncidentId"},
+    "incidentHash": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Hash"},
+    "scopeType": {"enum": ["OPERATION", "JOB"]},
+    "scopeId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/OpaqueId"},
+    "sequence": {"type": "integer", "minimum": 1, "maximum": 16},
+    "occurredAt": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/UtcTimestamp"},
+    "boundary": {"enum": ["AUTHENTICATION", "HOSTED_SERVICE", "RUNTIME_POLICY", "MCP", "MANAGER_OUTPUT", "CRITIC_OUTPUT", "AUTHORITY_TRANSPORT", "CLEANUP", "FIXTURE_STORE", "SIMULATOR", "CORRECTION", "RECOVERY", "SCHEDULER"]},
+    "code": {"enum": ["AUTH_REQUIRED", "RATE_LIMITED", "SOL_ULTRA_UNAVAILABLE", "MODEL_REROUTED", "THREAD_POLICY_INVALID", "MCP_CONTRACT_INVALID", "MCP_TOOL_FORBIDDEN", "MANAGER_OUTPUT_INVALID", "CRITIC_OUTPUT_INVALID", "MANAGER_ABSTAINED", "CRITIC_NOT_DISTINCT", "AUTHORITY_INPUT_ERROR", "AUTHORITY_TIMEOUT", "AUTHORITY_PROCESS_FAILED", "AUTHORITY_OUTPUT_INVALID", "AUTHORITY_RESPONSE_MISMATCH", "TURN_TIMEOUT", "TURN_PROTOCOL_FAILED", "TURN_SCHEMA_INVALID", "CLIENT_CLEANUP_FAILED", "RUNTIME_NOT_QUALIFIED", "NON_PUBLIC_DATA_REJECTED", "PARTIAL_FILL_UNSUPPORTED", "CORRECTION_REQUIRES_NEW_OPERATION", "OPERATION_IN_PROGRESS", "IDEMPOTENCY_CONFLICT", "RECOVERY_INCOMPLETE", "SCHEDULER_CIRCUIT_OPEN", "SCHEDULER_RESULT_INVALID", "SCHEDULER_RECOVERY_ABSTAINED", "SCHEDULER_LEASE_UNCERTAIN", "SCHEDULER_STATE_INVALID"]},
+    "exposureEffect": {"const": "NONE"},
+    "subjectHash": {"anyOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Hash"}]},
+    "previousIncidentHash": {"anyOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Hash"}]}
+  },
+  "$defs": {
+    "BranchFields": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": true,
+        "profile": true,
+        "artifactType": true,
+        "incidentId": true,
+        "incidentHash": true,
+        "scopeType": true,
+        "scopeId": true,
+        "sequence": true,
+        "occurredAt": true,
+        "boundary": true,
+        "code": true,
+        "exposureEffect": true,
+        "subjectHash": true,
+        "previousIncidentHash": true
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"scopeType": {"const": "OPERATION"}}, "required": ["scopeType"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"scopeId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/OperationId"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"scopeType": {"const": "JOB"}}, "required": ["scopeType"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"scopeId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/JobKey"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "AUTHENTICATION"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "AUTH_REQUIRED"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "HOSTED_SERVICE"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["RATE_LIMITED", "SOL_ULTRA_UNAVAILABLE", "MODEL_REROUTED", "TURN_TIMEOUT", "TURN_PROTOCOL_FAILED", "TURN_SCHEMA_INVALID"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "RUNTIME_POLICY"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["THREAD_POLICY_INVALID", "MCP_TOOL_FORBIDDEN", "CRITIC_NOT_DISTINCT", "RUNTIME_NOT_QUALIFIED"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "MCP"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "MCP_CONTRACT_INVALID"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "MANAGER_OUTPUT"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["MANAGER_OUTPUT_INVALID", "MANAGER_ABSTAINED"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "CRITIC_OUTPUT"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "CRITIC_OUTPUT_INVALID"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "AUTHORITY_TRANSPORT"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["AUTHORITY_INPUT_ERROR", "AUTHORITY_TIMEOUT", "AUTHORITY_PROCESS_FAILED", "AUTHORITY_OUTPUT_INVALID", "AUTHORITY_RESPONSE_MISMATCH"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "CLEANUP"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "CLIENT_CLEANUP_FAILED"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "FIXTURE_STORE"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["NON_PUBLIC_DATA_REJECTED", "OPERATION_IN_PROGRESS", "IDEMPOTENCY_CONFLICT"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "SIMULATOR"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "PARTIAL_FILL_UNSUPPORTED"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "CORRECTION"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "CORRECTION_REQUIRES_NEW_OPERATION"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "RECOVERY"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"const": "RECOVERY_INCOMPLETE"}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"boundary": {"const": "SCHEDULER"}}, "required": ["boundary"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"code": {"enum": ["SCHEDULER_CIRCUIT_OPEN", "SCHEDULER_RESULT_INVALID", "SCHEDULER_RECOVERY_ABSTAINED", "SCHEDULER_LEASE_UNCERTAIN", "SCHEDULER_STATE_INVALID"]}}, "unevaluatedProperties": false}}
+  ],
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}

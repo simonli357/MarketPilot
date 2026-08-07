@@ -1,7 +1,29 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
   "$id": "urn:marketpilot:paper-intent-fixture:v1:authority-request",
-  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "type": "object",
   "required": ["schemaVersion", "profile", "policyId", "messageType", "requestId", "operationId", "decisionAt", "bundle"],
-  "properties": {"schemaVersion": {"const": 1}, "profile": {"const": "marketpilot.paper-intent-fixture.v1"}, "policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"}, "messageType": {"const": "EVALUATE_FIXTURE_PAPER_INTENT"}, "requestId": {"type": "string", "pattern": "^req_[a-z0-9_]{2,63}$"}, "operationId": {"type": "string", "pattern": "^op_[a-z0-9_]{2,63}$"}, "decisionAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"}, "bundle": {"type": "object", "additionalProperties": false, "unevaluatedProperties": false, "required": ["researchEvent", "candidateManifest", "tradeIntent", "criticVerdict"], "properties": {"researchEvent": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:research-event"}, "candidateManifest": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:candidate-manifest"}, "tradeIntent": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:trade-intent"}, "criticVerdict": {"oneOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:critic-verdict"}]}}}}
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "profile": {"const": "marketpilot.paper-intent-fixture.v1"},
+    "policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"},
+    "messageType": {"const": "EVALUATE_FIXTURE_PAPER_INTENT"},
+    "requestId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/RequestId"},
+    "operationId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/OperationId"},
+    "decisionAt": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/UtcTimestamp"},
+    "bundle": {
+      "type": "object",
+      "required": ["researchEvent", "candidateManifest", "tradeIntent", "criticVerdict"],
+      "properties": {
+        "researchEvent": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:research-event"},
+        "candidateManifest": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:candidate-manifest"},
+        "tradeIntent": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:trade-intent"},
+        "criticVerdict": {"anyOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:critic-verdict"}]}
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
 }

@@ -11,15 +11,16 @@
     "codex:compatibility": "node scripts/codex-compatibility.mjs",
     "paper:fixture": "node scripts/paper-fixture.mjs",
     "paper:agent-hosted": "node scripts/paper-agent-hosted.mjs",
+    "paper:setup": "node scripts/setup-paper-python.mjs",
     "check:paper-core": "node scripts/paper-core-check.mjs",
-    "test:paper-core": "node --test test/paper/*.test.mjs",
+    "test:paper-core": "node --test --test-concurrency=1 test/paper/paper-authority-transport.test.mjs test/paper/paper-core.test.mjs test/paper/paper-registry-startup.test.mjs test/paper/paper-response-forgery.test.mjs test/paper/paper-schema-parity.test.mjs",
     "audit:paper-core": "node scripts/paper-core-audit.mjs",
-    "paper:recovery-matrix": "PYTHONPATH=src python3 -m marketpilot.paper_fixture_recovery --matrix",
-    "paper:recovery-boundaries": "PYTHONPATH=src python3 -m marketpilot.paper_fixture_recovery --recovery",
-    "paper:recovery-benchmark": "PYTHONPATH=src python3 -m marketpilot.paper_fixture_recovery --benchmark",
-    "test:paper-recovery": "PYTHONPATH=src python3 -m unittest discover -s test/paper_python -p 'test_recovery.py'",
-    "paper:soak": "PYTHONPATH=src python3 -m marketpilot.materiality_loop --soak",
-    "test:materiality": "PYTHONPATH=src python3 -m unittest discover -s test/paper_python -p 'test_materiality.py'",
+    "paper:recovery-matrix": "PYTHONPATH=src .venv-paper/bin/python -m marketpilot.paper_fixture_recovery --matrix",
+    "paper:recovery-boundaries": "PYTHONPATH=src .venv-paper/bin/python -m marketpilot.paper_fixture_recovery --recovery",
+    "paper:recovery-benchmark": "PYTHONPATH=src .venv-paper/bin/python -m marketpilot.paper_fixture_recovery --benchmark",
+    "test:paper-recovery": "PYTHONPATH=src .venv-paper/bin/python -m unittest discover -s test/paper_python -p 'test_recovery.py'",
+    "paper:soak": "PYTHONPATH=src .venv-paper/bin/python -m marketpilot.materiality_loop --soak",
+    "test:materiality": "PYTHONPATH=src .venv-paper/bin/python -m unittest discover -s test/paper_python -p 'test_materiality.py'",
     "project:check": "node scripts/project-check.mjs",
     "project:status": "node scripts/project-status.mjs",
     "project:skills": "node scripts/project-sync-skills.mjs",
@@ -27,6 +28,7 @@
     "test:codex": "node --test test/codex/*.test.mjs"
   },
   "dependencies": {
-    "@openai/codex": "0.145.0"
+    "@openai/codex": "0.145.0",
+    "ajv": "8.20.0"
   }
 }

@@ -21,6 +21,7 @@ import {
 const DEFAULT_TIMEOUT_MS = 2_000;
 const MAX_OUTPUT_BYTES = MAX_MESSAGE_BYTES;
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const DEFAULT_PYTHON = path.join(SOURCE_ROOT, ".venv-paper", "bin", "python");
 
 export class AuthorityAdapterError extends Error {
   /** @param {"AUTHORITY_INPUT_ERROR"|"AUTHORITY_TIMEOUT"|"AUTHORITY_PROCESS_FAILED"|"AUTHORITY_OUTPUT_INVALID"|"AUTHORITY_RESPONSE_MISMATCH"} code @param {string} message */
@@ -58,8 +59,8 @@ function collectBounded(stream, limit, onLimit) {
  * contract check; Python remains the only domain/policy authority.
  * @param {{requestBytes: Buffer|Uint8Array|string, timeoutMs?: number, python?: string}} options
  */
-export async function invokePaperAuthority({ requestBytes, timeoutMs = DEFAULT_TIMEOUT_MS, python = "python3.12" }) {
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 10_000) throw new TypeError("timeoutMs must be a positive bounded integer");
+export async function invokePaperAuthority({ requestBytes, timeoutMs = DEFAULT_TIMEOUT_MS, python = DEFAULT_PYTHON }) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > DEFAULT_TIMEOUT_MS) throw new TypeError("timeoutMs must be an integer from 1 through 2000");
   const bytes = asBytes(requestBytes);
   if (bytes.length > MAX_MESSAGE_BYTES) throw inputError("Authority request exceeds the bounded message size");
   if (bytes.length === 0 || !bytes.subarray(-1).equals(Buffer.from("\n")) || bytes.subarray(0, -1).includes(0x0a) || bytes.includes(0x0d) || bytes.includes(0x00) || bytes.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))) throw inputError("Authority request framing is invalid");
@@ -112,6 +113,9 @@ export async function invokePaperAuthority({ requestBytes, timeoutMs = DEFAULT_T
   if (output.length === 0 || output[output.length - 1] !== 0x0a || output.subarray(0, -1).includes(0x0a) || output.length > MAX_OUTPUT_BYTES) throw new AuthorityAdapterError("AUTHORITY_OUTPUT_INVALID", "Python authority framing is invalid");
   let envelope;
   try { envelope = parseJsonNoDuplicates(output.subarray(0, -1).toString("utf8")); } catch { throw new AuthorityAdapterError("AUTHORITY_OUTPUT_INVALID", "Python authority returned invalid JSON"); }
+  if (!output.equals(Buffer.from(`${canonicalJson(envelope)}\n`, "utf8"))) {
+    throw new AuthorityAdapterError("AUTHORITY_OUTPUT_INVALID", "Python authority output is not canonical JSON");
+  }
   if (result.code === 2) {
     try { validateProtocolError(envelope); if (envelope.messageType !== "FIXTURE_AUTHORITY_PROTOCOL_ERROR" || responseHash(envelope) !== envelope.responseHash) throw new Error(); } catch { throw new AuthorityAdapterError("AUTHORITY_OUTPUT_INVALID", "Python authority protocol envelope is invalid"); }
     throw new AuthorityAdapterError("AUTHORITY_INPUT_ERROR", "Python rejected the authority request contract");

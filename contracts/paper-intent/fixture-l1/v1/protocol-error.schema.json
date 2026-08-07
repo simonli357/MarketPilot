@@ -1,7 +1,37 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
   "$id": "urn:marketpilot:paper-intent-fixture:v1:protocol-error",
-  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "type": "object",
   "required": ["schemaVersion", "profile", "policyId", "messageType", "requestId", "status", "errorCode", "responseHash"],
-  "properties": {"schemaVersion": {"const": 1}, "profile": {"const": "marketpilot.paper-intent-fixture.v1"}, "policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"}, "messageType": {"enum": ["FIXTURE_AUTHORITY_PROTOCOL_ERROR", "FIXTURE_AUTHORITY_INTERNAL_ERROR"]}, "requestId": {"type": ["string", "null"], "pattern": "^req_[a-z0-9_]{2,63}$"}, "status": {"const": "ERROR"}, "errorCode": {"enum": ["INPUT_LIMIT_EXCEEDED", "INPUT_ENCODING_INVALID", "INPUT_FRAMING_INVALID", "INPUT_JSON_INVALID", "INPUT_DUPLICATE_KEY", "PROFILE_UNSUPPORTED", "SCHEMA_UNSUPPORTED", "INPUT_SCHEMA_INVALID", "INPUT_ARTIFACT_HASH_INVALID", "INTERNAL_ERROR"]}, "responseHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "profile": {"const": "marketpilot.paper-intent-fixture.v1"},
+    "policyId": {"const": "FIXTURE_LONG_US_EQUITY_100_V1"},
+    "messageType": {"enum": ["FIXTURE_AUTHORITY_PROTOCOL_ERROR", "FIXTURE_AUTHORITY_INTERNAL_ERROR"]},
+    "requestId": {"anyOf": [{"type": "null"}, {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/RequestId"}]},
+    "status": {"const": "ERROR"},
+    "errorCode": {"enum": ["INPUT_LIMIT_EXCEEDED", "INPUT_ENCODING_INVALID", "INPUT_FRAMING_INVALID", "INPUT_JSON_INVALID", "INPUT_DUPLICATE_KEY", "PROFILE_UNSUPPORTED", "SCHEMA_UNSUPPORTED", "INPUT_SCHEMA_INVALID", "INPUT_ARTIFACT_HASH_INVALID", "INTERNAL_ERROR"]},
+    "responseHash": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/Hash"}
+  },
+  "$defs": {
+    "BranchFields": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": true,
+        "profile": true,
+        "policyId": true,
+        "messageType": true,
+        "requestId": true,
+        "status": true,
+        "errorCode": true,
+        "responseHash": true
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"messageType": {"const": "FIXTURE_AUTHORITY_PROTOCOL_ERROR"}}, "required": ["messageType"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"errorCode": {"enum": ["INPUT_LIMIT_EXCEEDED", "INPUT_ENCODING_INVALID", "INPUT_FRAMING_INVALID", "INPUT_JSON_INVALID", "INPUT_DUPLICATE_KEY", "PROFILE_UNSUPPORTED", "SCHEMA_UNSUPPORTED", "INPUT_SCHEMA_INVALID", "INPUT_ARTIFACT_HASH_INVALID"]}}, "unevaluatedProperties": false}},
+    {"if": {"properties": {"messageType": {"const": "FIXTURE_AUTHORITY_INTERNAL_ERROR"}}, "required": ["messageType"]}, "then": {"$ref": "#/$defs/BranchFields", "properties": {"errorCode": {"const": "INTERNAL_ERROR"}}, "unevaluatedProperties": false}}
+  ],
+  "additionalProperties": false,
+  "unevaluatedProperties": false
 }

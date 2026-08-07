@@ -1,0 +1,6 @@
+# WI-005 executable Draft 2020-12 validator. The transitive graph is locked
+# with hashes in paper-core.lock for the Ubuntu 24.04 / Python 3.12 reference
+# environment.
+jsonschema==4.26.0
+referencing==0.37.0
+unicodedata2==17.0.1

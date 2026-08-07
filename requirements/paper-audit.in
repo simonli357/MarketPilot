@@ -1,0 +1,2 @@
+# Isolated validation tooling; never imported by the application runtime.
+pip-audit==2.10.1

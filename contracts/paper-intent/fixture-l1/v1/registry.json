@@ -14,12 +14,15 @@
     "Policy": "policy.schema.json",
     "ResearchEvent": "research-event.schema.json",
     "CandidateManifest": "candidate-manifest.schema.json",
+    "ManagerSemanticDraft": "manager-semantic-draft.schema.json",
     "TradeIntent": "trade-intent.schema.json",
+    "CriticSemanticDraft": "critic-semantic-draft.schema.json",
     "CriticVerdict": "critic-verdict.schema.json",
     "GateDecision": "gate-decision.schema.json",
     "OrderPlan": "order-plan.schema.json",
     "ExecutionEvent": "execution-event.schema.json",
     "AuditEvent": "audit-event.schema.json",
+    "AppIncidentEvent": "app-incident-event.schema.json",
     "FixtureAuthorityRequest": "authority-request.schema.json",
     "FixtureAuthorityResponse": "authority-response.schema.json",
     "ProtocolError": "protocol-error.schema.json"
@@ -27,13 +30,9 @@
   "rules": {
     "maxObjectBytes": 131072,
     "maxCollectionItems": 16,
-    "maxTextLength": 1024,
-    "timestamp": "YYYY-MM-DDTHH:MM:SS.mmmZ",
-    "price": {"pattern": "^(0|[1-9][0-9]*)\\.[0-9]{4}$", "minimum": "0.0001", "maximum": "999999.9999", "scale": 4},
-    "quantity": {"pattern": "^(0|[1-9][0-9]*)\\.[0-9]{6}$", "minimum": "0.000001", "maximum": "1000000.000000", "scale": 6},
-    "usdAmount": {"pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$", "minimum": "0.00", "maximum": "999999999.99", "scale": 2},
-    "ratio": {"pattern": "^(0|1)\\.[0-9]{6}$", "minimum": "0.000000", "maximum": "1.000000", "scale": 6},
-    "hash": "^[0-9a-f]{64}$",
-    "id": "^[a-z][a-z0-9_]{2,63}$"
+    "maxReasonCodes": 26,
+    "maxTextScalars": 1024,
+    "unicodeVersion": "17.0",
+    "timestamp": "YYYY-MM-DDTHH:MM:SS.mmmZ"
   }
 }

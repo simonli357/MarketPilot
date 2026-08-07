@@ -1,16 +1,25 @@
 // @ts-check
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { acceptedFixtureRequest, fixtureRequestBytes } from "../../src/paper-fixture/fixtures.mjs";
 import { invokePaperAuthority, AuthorityAdapterError } from "../../src/paper-fixture/authority-client.mjs";
 import { artifactHash, canonicalJson, parseJsonNoDuplicates, validateRequestContract, validateResponseContract, PaperContractError } from "../../src/paper-fixture/contract-validation.mjs";
 
+const NONCANONICAL_PYTHON = fileURLToPath(new URL("../fixtures/noncanonical-paper-python.sh", import.meta.url));
+let acceptedResponsePromise;
+
+async function acceptedAuthorityResult(request = acceptedFixtureRequest()) {
+  acceptedResponsePromise ??= invokePaperAuthority({ requestBytes: fixtureRequestBytes(request) });
+  return structuredClone(await acceptedResponsePromise);
+}
+
 test("accepted fixture crosses Node/Python authority and produces a verifiable result", async () => {
   const request = acceptedFixtureRequest();
   const before = canonicalJson(request);
-  const response = await invokePaperAuthority({ requestBytes: fixtureRequestBytes(request) });
+  const response = await acceptedAuthorityResult(request);
   assert.equal(canonicalJson(request), before);
-  validateResponseContract(response);
+  validateResponseContract(response, { request });
   assert.equal(response.status, "ACCEPTED");
   assert.equal(response.gateDecision.producer.kind, "PYTHON_AUTHORITY");
   assert.equal(response.orderPlan.simulationOnly, true);
@@ -27,7 +36,7 @@ test("input hash mutation fails before Python and cannot create artifacts", asyn
 test("identifier arrays cannot pass Node regex coercion", () => {
   const request = acceptedFixtureRequest();
   request.bundle.researchEvent.eventId = ["re_fixture_notice_v1"];
-  assert.throws(() => validateRequestContract(request), /identifier|valid string/);
+  assert.throws(() => validateRequestContract(request), error => error instanceof PaperContractError && error.code === "INPUT_SCHEMA_INVALID");
 });
 
 test("duplicate keys and noncanonical financial strings fail closed", async () => {
@@ -35,14 +44,14 @@ test("duplicate keys and noncanonical financial strings fail closed", async () =
   const request = acceptedFixtureRequest();
   request.bundle.tradeIntent.proposal.maximumEntryPrice = "9.9e1";
   request.bundle.tradeIntent.intentHash = artifactHash(request.bundle.tradeIntent, "TradeIntent");
-  assert.throws(() => validateRequestContract(request), /lexical/);
+  assert.throws(() => validateRequestContract(request), error => error instanceof PaperContractError && error.code === "INPUT_SCHEMA_INVALID");
 });
 
 test("fixed-scale ratio bounds and early-year timestamps remain cross-runtime safe", () => {
   const request = acceptedFixtureRequest();
   request.bundle.candidateManifest.policy.buyCollarRatio = "1.999999";
   request.bundle.candidateManifest.candidateHash = artifactHash(request.bundle.candidateManifest, "CandidateManifest");
-  assert.throws(() => validateRequestContract(request), /range/);
+  assert.throws(() => validateRequestContract(request), error => error instanceof PaperContractError && error.code === "INPUT_SCHEMA_INVALID");
   const timestampRequest = acceptedFixtureRequest();
   timestampRequest.bundle.candidateManifest.createdAt = "0001-01-01T00:00:00.000Z";
   timestampRequest.bundle.candidateManifest.candidateHash = artifactHash(timestampRequest.bundle.candidateManifest, "CandidateManifest");
@@ -65,12 +74,15 @@ test("NFC text limits use Unicode code points consistently", () => {
 test("deterministic authority artifacts and audit chain remain stable", async () => {
   const request = acceptedFixtureRequest();
   const bytes = fixtureRequestBytes(request);
-  const first = await invokePaperAuthority({ requestBytes: bytes });
+  const first = await acceptedAuthorityResult(request);
   const second = await invokePaperAuthority({ requestBytes: bytes });
   assert.deepEqual(second, first);
   const tampered = structuredClone(first);
   tampered.auditEvents.splice(1, 0, structuredClone(tampered.auditEvents[0]));
-  assert.throws(() => validateResponseContract(tampered), /mismatch/);
+  assert.throws(
+    () => validateResponseContract(tampered, { request }),
+    error => error instanceof PaperContractError,
+  );
 });
 
 test("Node does not make the Python-only rights decision", async () => {
@@ -94,27 +106,36 @@ test("Node does not make the Python-only rights decision", async () => {
 
 test("response input substitution is rejected against the originating request", async () => {
   const request = acceptedFixtureRequest();
-  const response = await invokePaperAuthority({ requestBytes: fixtureRequestBytes(request) });
+  const response = await acceptedAuthorityResult(request);
   const forged = structuredClone(response);
   forged.gateDecision.inputRefs.eventId = "re_fake_substitution_v1";
-  assert.throws(() => validateResponseContract(forged, { request }), /mismatch/);
+  assert.throws(() => validateResponseContract(forged, { request }), error => error instanceof PaperContractError);
 });
 
 test("response critic references require a nullable pair", async () => {
-  const response = await invokePaperAuthority({ requestBytes: fixtureRequestBytes(acceptedFixtureRequest()) });
+  const request = acceptedFixtureRequest();
+  const response = await acceptedAuthorityResult(request);
   response.gateDecision.inputRefs.verdictId = null;
-  assert.throws(() => validateResponseContract(response), /both null or both present/);
+  assert.throws(() => validateResponseContract(response, { request }));
 });
 
 test("response reason codes remain exact and deterministically ordered", async () => {
-  const response = await invokePaperAuthority({ requestBytes: fixtureRequestBytes(acceptedFixtureRequest()) });
+  const request = acceptedFixtureRequest();
+  const response = await acceptedAuthorityResult(request);
   response.reasonCodes = ["WRONG_REASON"];
-  assert.throws(() => validateResponseContract(response), /only ACCEPTED/);
+  assert.throws(() => validateResponseContract(response, { request }));
 });
 
 test("early authority process exit is typed and cannot surface EPIPE", async () => {
   await assert.rejects(
     invokePaperAuthority({ requestBytes: fixtureRequestBytes(acceptedFixtureRequest()), python: "/bin/false" }),
     error => error instanceof AuthorityAdapterError && error.code === "AUTHORITY_PROCESS_FAILED",
+  );
+});
+
+test("noncanonical authority JSON is rejected even when its decoded envelope is valid", async () => {
+  await assert.rejects(
+    invokePaperAuthority({ requestBytes: fixtureRequestBytes(acceptedFixtureRequest()), python: NONCANONICAL_PYTHON }),
+    error => error instanceof AuthorityAdapterError && error.code === "AUTHORITY_OUTPUT_INVALID",
   );
 });

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "vocabulary": "urn:marketpilot:paper-intent-fixture:v1:vocabulary",
+  "vectors": [
+    {"id": "nfc-ascii", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "MarketPilot", "valid": true},
+    {"id": "nfc-composed", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "é", "valid": true},
+    {"id": "nfc-emoji", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "📈", "valid": true},
+    {"id": "nfc-decomposed", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "é", "valid": false},
+    {"id": "nfc-unicode-17-composition", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "𐗉", "valid": false},
+    {"id": "nfc-lone-high-surrogate", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "\ud800", "valid": false},
+    {"id": "nfc-lone-low-surrogate", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": true}, "value": "\udfff", "valid": false},
+    {"id": "nfc-disabled", "keyword": "mpNfc", "schema": {"type": "string", "mpNfc": false}, "value": "é", "valid": true},
+    {"id": "scalar-empty-boundary", "keyword": "mpScalarLength", "schema": {"type": "string", "mpScalarLength": {"min": 0, "max": 0}}, "value": "", "valid": true},
+    {"id": "scalar-one-emoji", "keyword": "mpScalarLength", "schema": {"type": "string", "mpScalarLength": {"min": 1, "max": 1}}, "value": "📈", "valid": true},
+    {"id": "scalar-too-short", "keyword": "mpScalarLength", "schema": {"type": "string", "mpScalarLength": {"min": 1, "max": 2}}, "value": "", "valid": false},
+    {"id": "scalar-too-long", "keyword": "mpScalarLength", "schema": {"type": "string", "mpScalarLength": {"min": 0, "max": 1}}, "value": "ab", "valid": false},
+    {"id": "scalar-lone-surrogate", "keyword": "mpScalarLength", "schema": {"type": "string", "mpScalarLength": {"min": 1, "max": 1}}, "value": "\ud800", "valid": false},
+    {"id": "sorted-scalars-empty", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "$value"}, "value": [], "valid": true},
+    {"id": "sorted-scalars-ascending", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "$value"}, "value": ["a", "b", "é", "📈"], "valid": true},
+    {"id": "sorted-scalars-duplicate", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "$value"}, "value": ["a", "a"], "valid": false},
+    {"id": "sorted-scalars-reversed", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "$value"}, "value": ["b", "a"], "valid": false},
+    {"id": "sorted-objects-ascending", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "id"}, "value": [{"id": "a"}, {"id": "b"}], "valid": true},
+    {"id": "sorted-objects-duplicate", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "id"}, "value": [{"id": "a"}, {"id": "a"}], "valid": false},
+    {"id": "sorted-objects-reversed", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "id"}, "value": [{"id": "b"}, {"id": "a"}], "valid": false},
+    {"id": "sorted-objects-missing-key", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "id"}, "value": [{"name": "a"}], "valid": false},
+    {"id": "sorted-objects-nonstring-key", "keyword": "mpSortedUniqueBy", "schema": {"type": "array", "mpSortedUniqueBy": "id"}, "value": [{"id": 1}], "valid": false}
+  ]
+}

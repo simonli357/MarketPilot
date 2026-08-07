@@ -1,7 +1,12 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "urn:marketpilot:paper-intent-fixture:v1:meta",
   "$id": "urn:marketpilot:paper-intent-fixture:v1:producer",
-  "type": "object", "additionalProperties": false, "unevaluatedProperties": false,
+  "type": "object",
   "required": ["kind", "runId"],
-  "properties": {"kind": {"enum": ["FIXTURE_SOURCE", "FIXTURE_REGISTRY", "MANAGER", "CRITIC", "PYTHON_AUTHORITY"]}, "runId": {"type": "string", "pattern": "^run_[a-z0-9_]{2,63}$"}}
+  "properties": {
+    "kind": {"enum": ["FIXTURE_SOURCE", "FIXTURE_REGISTRY", "MANAGER", "CRITIC", "PYTHON_AUTHORITY"]},
+    "runId": {"$ref": "urn:marketpilot:paper-intent-fixture:v1:primitives#/$defs/RunId"}
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
 }

@@ -8,6 +8,8 @@ human.md
 
 # Dependencies and generated output
 node_modules/
+.venv-paper/
+.venv-paper-audit/
 dist/
 build/
 coverage/

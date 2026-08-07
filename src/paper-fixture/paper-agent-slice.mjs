@@ -122,7 +122,7 @@ export async function runPaperAgentSlice({
   if (typeof runTurn !== "function") throw new TypeError("runTurn must be a function");
   if (typeof authority !== "function") throw new TypeError("authority must be a function");
   if (!Number.isSafeInteger(turnTimeoutMs) || turnTimeoutMs < 1_000 || turnTimeoutMs > 300_000) throw new TypeError("turnTimeoutMs is outside its bound");
-  if (!Number.isSafeInteger(authorityTimeoutMs) || authorityTimeoutMs < 1 || authorityTimeoutMs > 10_000) throw new TypeError("authorityTimeoutMs is outside its bound");
+  if (!Number.isSafeInteger(authorityTimeoutMs) || authorityTimeoutMs < 1 || authorityTimeoutMs > 2_000) throw new TypeError("authorityTimeoutMs must be an integer from 1 through 2000");
   if (signal !== undefined && (typeof signal !== "object" || signal === null || typeof signal.addEventListener !== "function" || typeof signal.aborted !== "boolean")) throw new TypeError("signal must be an AbortSignal");
 
   let normalizedRequest;

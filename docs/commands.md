@@ -15,6 +15,7 @@ npm run project:migrate
 
 ```bash
 npm ci
+npm run paper:setup
 npm run project:check
 ```
 
@@ -43,6 +44,8 @@ npm run paper:agent-hosted -- --help
 ```
 
 The fixture commands use only the committed synthetic `PUBLIC_OFFICIAL` MPTEST event. They do not contact a broker, read account or licensed-data state, or arm live trading.
+
+`npm run paper:setup` creates the ignored private Python environment from `requirements/paper-core.lock`. `npm run audit:paper-core` verifies both locked validator graphs and may create a separate ignored audit-tool environment; its npm and Python vulnerability checks require package-registry access.
 
 The WI-007 recovery commands use a temporary fixture-only SQLite-compatible store (`fixtureOnly=1`, `productionState=0`, no encryption). The current diagnostic matrix exposes thirty named cases, boundary validation closes and reopens the store after injected crash hooks, and the benchmark is fixed at 1,000 in-process Python authority fixtures excluding process startup and broker I/O. These commands exercise the candidate harness; only WI-007's canonical success criteria determine whether the paths, boundaries, concurrency behavior, and benchmark pass gate are accepted.
 
